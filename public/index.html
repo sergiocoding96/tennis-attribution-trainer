@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Tennis Attribution Trainer</title>
+    <style>
+        .comment-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .comment-card:hover {
+            border-color: #4CAF50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .helpfulness-badge {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .bg-green-100 {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .bg-yellow-100 {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .bg-red-100 {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .bg-blue-100 {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .comment-quote {
+            color: #6b7280;
+            font-style: italic;
+            margin: 8px 0;
+            max-height: 40px;
+            overflow: hidden;
+        }
+
+        .expand-icon {
+            text-align: center;
+            margin-top: 8px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        .expanded-view {
+            margin-top: 16px;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 16px;
+        }
+
+        .pattern-item {
+            border-left: 4px solid;
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+
+        .edit-section {
+            background: #f0f9ff;
+            border: 1px solid #e0f2fe;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .char-counter {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c5530;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        .btn.secondary {
+            background-color: #2196F3;
+        }
+
+        .btn.secondary:hover {
+            background-color: #0b7dda;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .transcription-result {
+            text-align: left;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .transcription-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .stat-item {
+            background: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .options-section {
+            text-align: left;
+            margin: 15px 0;
+        }
+
+        .options-section label {
+            display: block;
+            margin: 5px 0;
+        }
+
+        .options-section input,
+        .options-section select {
+            width: 100%;
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎾 Tennis Attribution Trainer</h1>
+
+        <div class="upload-section">
+            <h2>🎤 Audio Transcription</h2>
+            <p>Upload audio files (MP3, WAV, M4A, etc.) to get AI-powered transcriptions with timestamps</p>
+
+            <form id="transcriptionForm" enctype="multipart/form-data">
+                <input type="file" id="audioInput" name="audio" accept=".mp3,.wav,.m4a,.mp4,.mpeg,.mpga,.webm" required>
+                <br><br>
+
+                <div class="options-section">
+                    <label for="language">Language:</label>
+                    <select id="language" name="language">
+                        <option value="es" selected>Spanish</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn secondary">🎤 Transcribe Audio</button>
+            </form>
+
+            <div id="transcriptionStatus"></div>
+            <div id="transcriptionResult"></div>
+        </div>
+
+        <div class="upload-section">
+            <h2>🧠 Attribution Analysis</h2>
+            <p>Analyze transcribed audio to identify attribution patterns and mental frameworks</p>
+
+            <div id="analysisSection" style="display: none;">
+                <button id="analyzeBtn" class="btn secondary">🔍 Analyze Psychological Patterns</button>
+                <div id="analysisStatus"></div>
+
+                <div id="commentAnalysis" style="display: none; margin-top: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 id="commentHeader">💭 Comment Analysis</h3>
+                        <button id="showSummary" class="btn secondary">📊 Show Summary</button>
+                    </div>
+                    <div id="commentsList" style="max-height: 600px; overflow-y: auto;"></div>
+                </div>
+
+                <div id="analysisResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
