@@ -5,32 +5,117 @@ const psychologyPatterns = require('./psychologyPatterns');
 
 class AttributionService {
     constructor() {
+        // Configure timeout (default 60s, configurable via env)
+        const timeout = parseInt(process.env.CLAUDE_API_TIMEOUT) || 60000; // 60 seconds default
+        
         this.anthropic = new Anthropic({
             apiKey: process.env.CLAUDE_API_KEY,
+            timeoutMs: timeout,
         });
         this.tennisLanguage = tennisLanguageProcessor;
         this.reframes = authenticReframes;
         this.patterns = psychologyPatterns;
+        this.defaultModel = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929';
+        this.maxTokensPerRequest = 8000; // Increased from 4000 to prevent truncation
+        this.chunkSize = 4000; // Reduced from 8000 to ensure responses fit within token limits
     }
 
     /**
-     * Analyze transcription for attribution patterns using Claude API
+     * Attempt to repair truncated JSON
      */
-    async analyzeAttributions(transcription) {
+    repairJson(jsonString) {
         try {
-            console.log('Starting attribution analysis...');
+            // If valid, return parsed
+            return JSON.parse(jsonString);
+        } catch (e) {
+            console.log('Attempting to repair truncated JSON...');
+            let repaired = jsonString.trim();
+            
+            // Check if it ends with a closing brace
+            if (repaired.endsWith('}')) return JSON.parse(repaired); // Should have been caught above
 
-            if (!process.env.CLAUDE_API_KEY) {
-                throw new Error('CLAUDE_API_KEY not configured');
+            // Find the last valid closing structure
+            const lastObjectEnd = repaired.lastIndexOf('}');
+            const lastArrayEnd = repaired.lastIndexOf(']');
+            
+            // If we have a segments array that was cut off
+            if (repaired.includes('"segments": [')) {
+                // Try to close the segments array and the main object
+                // Remove trailing comma if present
+                if (repaired.endsWith(',')) repaired = repaired.slice(0, -1);
+                
+                // If inside an object in the array (unclosed object)
+                if (repaired.lastIndexOf('{') > repaired.lastIndexOf('}')) {
+                    // Close the current object
+                    repaired += '}]';
+                } else if (repaired.lastIndexOf(']') < repaired.lastIndexOf('}')) {
+                    // Array open but not closed
+                    repaired += ']';
+                }
+                
+                // Close main object
+                if (!repaired.endsWith('}')) repaired += '}';
+                
+                try {
+                    const parsed = JSON.parse(repaired);
+                    console.log('JSON repaired successfully');
+                    return parsed;
+                } catch (repairError) {
+                    console.error('Failed to repair JSON:', repairError);
+                    throw e; // Throw original error
+                }
             }
+            throw e;
+        }
+    }
 
-            if (!transcription || transcription.trim().length === 0) {
-                throw new Error('No transcription provided for analysis');
+    /**
+     * Estimate token count (rough approximation: 1 token ≈ 4 characters)
+     */
+    estimateTokenCount(text) {
+        return Math.ceil(text.length / 4);
+    }
+
+    /**
+     * Split transcription into chunks if it's too long
+     */
+    chunkTranscription(transcription) {
+        if (transcription.length <= this.chunkSize) {
+            return [transcription];
+        }
+
+        const chunks = [];
+        let currentChunk = '';
+        const sentences = transcription.split(/[.!?]\s+/);
+
+        for (const sentence of sentences) {
+            if ((currentChunk + sentence).length > this.chunkSize && currentChunk.length > 0) {
+                chunks.push(currentChunk.trim());
+                currentChunk = sentence;
+            } else {
+                currentChunk += (currentChunk ? '. ' : '') + sentence;
             }
+        }
 
-            const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.
+        if (currentChunk.trim().length > 0) {
+            chunks.push(currentChunk.trim());
+        }
 
-TRANSCRIPTION: "${transcription}"
+        return chunks;
+    }
+
+    /**
+     * Analyze a single chunk of transcription
+     */
+    async analyzeChunk(chunk, chunkIndex, totalChunks) {
+        const isPartial = totalChunks > 1;
+        const chunkContext = isPartial 
+            ? `\n\nNOTE: This is chunk ${chunkIndex + 1} of ${totalChunks}. Analyze this segment independently.`
+            : '';
+
+        const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.${chunkContext}
+
+TRANSCRIPTION: "${chunk}"
 
 For each distinct quote/comment, provide a JSON response with this structure:
 
@@ -38,7 +123,7 @@ For each distinct quote/comment, provide a JSON response with this structure:
   "segments": [
     {
       "segment_id": number,
-      "quote": "exact quote from transcription",
+      "quote": "exact quote",
       "timestamp": "time if available",
       "situation": "brief context",
       "helpfulness_score": number (1-10),
@@ -46,20 +131,20 @@ For each distinct quote/comment, provide a JSON response with this structure:
         {
           "type": "pattern_type",
           "helpfulness_score": number (1-10),
-          "explanation": "brief explanation",
+          "explanation": "concise explanation (max 15 words)",
           "intensity": "low/medium/high"
         }
       ],
       "attribution_analysis": {
         "has_attribution": boolean,
-        "attribution_statement": "the causal explanation if present",
+        "attribution_statement": "causal explanation if present",
         "dimensions": {
           "locus": "internal/external/mixed",
           "stability": "stable/unstable/mixed", 
           "controllability": "controllable/uncontrollable/mixed"
         },
         "attribution_quality_score": number (1-10, only if has_attribution is true),
-        "attribution_explanation": "why this attribution helps/hurts performance"
+        "attribution_explanation": "concise impact (max 15 words)"
       },
       "focus_direction": "forward/backward/present"
     }
@@ -89,30 +174,31 @@ For each distinct quote/comment, provide a JSON response with this structure:
 SCORING CRITERIA:
 
 HELPFULNESS SCORE (1-10):
-- 8-10: Builds confidence, motivates, solution-focused, forward-looking
-- 5-7: Neutral impact, mixed helpful/unhelpful elements
-- 1-4: Undermines confidence, dwelling on past, harsh self-criticism
+- 8-10: Builds confidence, motivates, solution-focused
+- 5-7: Neutral impact, mixed elements
+- 1-4: Undermines confidence, harsh self-criticism
 
 ATTRIBUTION QUALITY SCORE (1-10, only when causal explanations present):
-- 8-10: Internal-Controllable attributions that empower improvement ("I need to adjust my grip")
+- 8-10: Internal-Controllable attributions that empower
 - 5-7: Mixed or partially helpful attributions 
-- 1-4: External-Uncontrollable attributions that create helplessness ("The wind always ruins my shots")
+- 1-4: External-Uncontrollable attributions that create helplessness
 
 PSYCHOLOGICAL PATTERN TYPES:
-- positive_reinforcement: Self-praise, confidence building
-- self_criticism: Harsh self-judgment, negative evaluation
-- tactical_focus: Technical analysis, strategic thinking
-- emotional_regulation: Managing frustration, staying calm
-- forward_focus: Looking ahead, next point mentality
-- backward_focus: Dwelling on past mistakes
-- energy_management: Motivational self-talk
-- pattern_recognition: Learning from experience
+- positive_reinforcement: Self-praise
+- self_criticism: Negative evaluation
+- tactical_focus: Strategy
+- emotional_regulation: Managing frustration
+- forward_focus: Next point mentality
+- backward_focus: Dwelling on past
+- energy_management: Motivational
+- pattern_recognition: Learning
 
-Focus on realistic, observable patterns. Be specific about what makes each comment helpful or unhelpful for tennis performance.`;
+Focus on realistic, observable patterns. Keep explanations concise to save space.`;
 
+        try {
             const response = await this.anthropic.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 4000,
+                model: this.defaultModel,
+                max_tokens: this.maxTokensPerRequest,
                 temperature: 0.3,
                 messages: [
                     {
@@ -122,32 +208,169 @@ Focus on realistic, observable patterns. Be specific about what makes each comme
                 ]
             });
 
-            console.log('Claude API response received');
-
-            // Extract the response content
             const responseText = response.content[0].text;
 
             // Try to parse the JSON response
-            let analysisResult;
-            try {
-                // Look for JSON in the response
-                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    analysisResult = JSON.parse(jsonMatch[0]);
-                } else {
-                    throw new Error('No JSON found in response');
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                // Try to parse, using repair logic if needed
+                try {
+                    return JSON.parse(jsonMatch[0]);
+                } catch (parseError) {
+                    // If simple parse fails, try to repair (likely truncation)
+                    return this.repairJson(jsonMatch[0]);
                 }
-            } catch (parseError) {
-                console.error('Error parsing Claude response:', parseError);
-                console.log('Raw response:', responseText);
-
-                // Return a structured error response
-                return {
-                    attributions: [],
-                    error: 'Failed to parse attribution analysis',
-                    raw_response: responseText
-                };
+            } else {
+                // Try to repair the raw text if regex failed to find a complete block
+                try {
+                    return this.repairJson(responseText);
+                } catch (e) {
+                    throw new Error('No valid JSON found in response');
+                }
             }
+        } catch (error) {
+            console.error(`Error analyzing chunk ${chunkIndex + 1}:`, error);
+            
+            // Handle timeout errors
+            if (error.message && error.message.includes('timeout')) {
+                throw new Error(`Request timeout while analyzing chunk ${chunkIndex + 1}. The transcription may be too long.`);
+            }
+            
+            throw error;
+        }
+    }
+
+    /**
+     * Merge multiple chunk analysis results into a single result
+     */
+    mergeChunkResults(chunkResults) {
+        if (chunkResults.length === 0) {
+            return {
+                segments: [],
+                analysis_summary: {
+                    total_segments: 0,
+                    pattern_distribution: {},
+                    helpful_thought_ratio: "0%",
+                    average_intensity: "medium",
+                    focus_direction_ratio: "0%",
+                    dominant_patterns: [],
+                    key_insights: []
+                }
+            };
+        }
+
+        if (chunkResults.length === 1) {
+            return chunkResults[0];
+        }
+
+        // Merge segments
+        let allSegments = [];
+        let segmentIdCounter = 1;
+        chunkResults.forEach((result, chunkIndex) => {
+            if (result.segments && Array.isArray(result.segments)) {
+                result.segments.forEach(segment => {
+                    allSegments.push({
+                        ...segment,
+                        segment_id: segmentIdCounter++
+                    });
+                });
+            }
+        });
+
+        // Merge pattern distributions
+        const mergedPatternDistribution = {};
+        const patternKeys = [
+            'positive_reinforcement', 'self_criticism', 'tactical_focus',
+            'emotional_regulation', 'forward_focus', 'backward_focus',
+            'energy_management', 'pattern_recognition'
+        ];
+
+        patternKeys.forEach(key => {
+            mergedPatternDistribution[key] = chunkResults.reduce((sum, result) => {
+                return sum + (result.analysis_summary?.pattern_distribution?.[key] || 0);
+            }, 0);
+        });
+
+        // Calculate merged summary metrics
+        const totalSegments = allSegments.length;
+        const helpfulSegments = allSegments.filter(s => s.helpfulness_score >= 7).length;
+        const helpfulRatio = totalSegments > 0 ? Math.round((helpfulSegments / totalSegments) * 100) : 0;
+        
+        const attributionSegments = allSegments.filter(s => s.attribution_analysis?.has_attribution);
+        const avgAttributionQuality = attributionSegments.length > 0
+            ? Math.round(attributionSegments.reduce((sum, s) => sum + (s.attribution_analysis.attribution_quality_score || 0), 0) / attributionSegments.length)
+            : 0;
+
+        // Collect all insights and dominant patterns
+        const allInsights = [];
+        const allDominantPatterns = [];
+        chunkResults.forEach(result => {
+            if (result.analysis_summary?.key_insights) {
+                allInsights.push(...result.analysis_summary.key_insights);
+            }
+            if (result.analysis_summary?.dominant_patterns) {
+                allDominantPatterns.push(...result.analysis_summary.dominant_patterns);
+            }
+        });
+
+        return {
+            segments: allSegments,
+            analysis_summary: {
+                total_segments: totalSegments,
+                helpful_thought_ratio: `${helpfulRatio}%`,
+                average_intensity: "medium", // Could be calculated from segments
+                focus_direction_ratio: `${Math.round((allSegments.filter(s => s.focus_direction === 'forward').length / totalSegments) * 100)}% forward`,
+                attribution_count: attributionSegments.length,
+                average_attribution_quality: avgAttributionQuality,
+                pattern_distribution: mergedPatternDistribution,
+                key_insights: [...new Set(allInsights)].slice(0, 5), // Unique insights, max 5
+                dominant_patterns: [...new Set(allDominantPatterns)].slice(0, 3) // Unique patterns, max 3
+            }
+        };
+    }
+
+    /**
+     * Analyze transcription for attribution patterns using Claude API
+     */
+    async analyzeAttributions(transcription) {
+        try {
+            console.log('Starting attribution analysis...');
+
+            if (!process.env.CLAUDE_API_KEY) {
+                throw new Error('CLAUDE_API_KEY not configured');
+            }
+
+            if (!transcription || transcription.trim().length === 0) {
+                throw new Error('No transcription provided for analysis');
+            }
+
+            // Check if transcription needs chunking
+            const chunks = this.chunkTranscription(transcription);
+            console.log(`Processing ${chunks.length} chunk(s) for analysis (transcription length: ${transcription.length} characters)`);
+
+            if (chunks.length > 1) {
+                console.log('Transcription is long, processing in chunks to prevent timeouts...');
+            }
+
+            // Process chunks sequentially to avoid overwhelming the API
+            const chunkResults = [];
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Processing chunk ${i + 1}/${chunks.length}...`);
+                try {
+                    const chunkResult = await this.analyzeChunk(chunks[i], i, chunks.length);
+                    chunkResults.push(chunkResult);
+                } catch (chunkError) {
+                    console.error(`Failed to process chunk ${i + 1}:`, chunkError);
+                    // Continue with other chunks even if one fails
+                    if (chunkResults.length === 0) {
+                        throw chunkError; // Only throw if all chunks fail
+                    }
+                }
+            }
+
+            // Merge results from all chunks
+            const analysisResult = this.mergeChunkResults(chunkResults);
+            console.log('Claude API response received and merged');
 
             // Validate the response structure
             if (!analysisResult.segments || !Array.isArray(analysisResult.segments)) {
@@ -194,6 +417,8 @@ Focus on realistic, observable patterns. Be specific about what makes each comme
                 throw new Error('Claude API rate limit exceeded');
             } else if (error.status === 500) {
                 throw new Error('Claude API server error');
+            } else if (error.message && error.message.includes('timeout')) {
+                throw new Error('Request timeout. The transcription may be too long. Try breaking it into smaller segments.');
             }
 
             // Re-throw the error for generic handling
@@ -271,7 +496,7 @@ ATTRIBUTION QUALITY SCORE (1-10, only when causal explanations present):
 Focus on practical tennis psychology - what will actually help performance on court. Be specific about attribution dimensions and their impact.`;
 
             const response = await this.anthropic.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
+                model: this.defaultModel,
                 max_tokens: 1000,
                 temperature: 0.3,
                 messages: [
@@ -322,6 +547,20 @@ Focus on practical tennis psychology - what will actually help performance on co
 
         } catch (error) {
             console.error('Reframe scoring error:', error);
+
+            // Handle timeout errors specifically
+            if (error.message && error.message.includes('timeout')) {
+                return {
+                    helpfulness_score: 5,
+                    attribution_analysis: {
+                        has_attribution: false,
+                        attribution_quality_score: null
+                    },
+                    feedback: 'Request timeout. Please try again with a shorter reframe.',
+                    improvements: ['Keep your reframe concise', 'Focus on one key improvement'],
+                    overall_score: 5
+                };
+            }
 
             // Return a default response if API fails
             return {

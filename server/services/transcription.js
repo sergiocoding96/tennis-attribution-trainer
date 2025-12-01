@@ -4,12 +4,18 @@ const path = require('path');
 
 class TranscriptionService {
     constructor() {
+        // Configure timeout (default 300s for large files, configurable via env)
+        const timeout = parseInt(process.env.OPENAI_API_TIMEOUT) || 300000; // 5 minutes default
+        
         this.openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
+            timeout: timeout,
         });
 
         this.supportedFormats = ['.mp3', '.wav', '.m4a', '.mp4', '.mpeg', '.mpga', '.webm'];
         this.maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
+        this.maxRetries = parseInt(process.env.OPENAI_MAX_RETRIES) || 3;
+        this.retryDelay = 1000; // Initial delay in ms
     }
 
     /**
@@ -36,42 +42,97 @@ class TranscriptionService {
     }
 
     /**
-     * Transcribe audio file using OpenAI Whisper API
+     * Sleep utility for retry delays
+     */
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Retry wrapper with exponential backoff
+     */
+    async retryWithBackoff(fn, retries = this.maxRetries) {
+        let lastError;
+        
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                return await fn();
+            } catch (error) {
+                lastError = error;
+                
+                // Don't retry on certain errors
+                if (error.status === 401 || error.status === 400 || error.status === 413) {
+                    throw error;
+                }
+                
+                // If it's the last attempt, throw the error
+                if (attempt === retries) {
+                    break;
+                }
+                
+                // Calculate exponential backoff delay
+                const delay = this.retryDelay * Math.pow(2, attempt - 1);
+                console.log(`Transcription attempt ${attempt} failed. Retrying in ${delay}ms... (Error: ${error.message})`);
+                
+                await this.sleep(delay);
+            }
+        }
+        
+        throw lastError;
+    }
+
+    /**
+     * Transcribe audio file using OpenAI Whisper API with retry logic
      */
     async transcribeAudio(filePath, options = {}) {
+        const {
+            language = null,
+            prompt = null,
+            response_format = 'verbose_json',
+            temperature = 0
+        } = options;
+
+        // Get file size for logging and error messages
+        let fileSizeMB = 'unknown';
         try {
-            const {
-                language = null,
-                prompt = null,
-                response_format = 'verbose_json',
-                temperature = 0
-            } = options;
+            const fileStats = fs.statSync(filePath);
+            fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(2);
+        } catch (statError) {
+            console.warn('Could not get file stats:', statError);
+        }
+        console.log(`Starting transcription for file: ${filePath} (${fileSizeMB}MB)`);
 
-            console.log(`Starting transcription for file: ${filePath}`);
+        // Create a readable stream from the file
+        const audioFile = fs.createReadStream(filePath);
 
-            // Create a readable stream from the file
-            const audioFile = fs.createReadStream(filePath);
+        // Prepare API parameters, excluding null values
+        const apiParams = {
+            file: audioFile,
+            model: 'whisper-1',
+            response_format: response_format,
+            temperature: temperature,
+        };
 
-            // Prepare API parameters, excluding null values
-            const apiParams = {
-                file: audioFile,
-                model: 'whisper-1',
-                response_format: response_format,
-                temperature: temperature,
-            };
+        // Only include language if specified
+        if (language) {
+            apiParams.language = language;
+        }
 
-            // Only include language if specified
-            if (language) {
-                apiParams.language = language;
-            }
+        // Only include prompt if specified (not null/empty)
+        if (prompt && prompt.trim()) {
+            apiParams.prompt = prompt;
+        }
 
-            // Only include prompt if specified (not null/empty)
-            if (prompt && prompt.trim()) {
-                apiParams.prompt = prompt;
-            }
-
-            // Call OpenAI Whisper API
-            const transcription = await this.openai.audio.transcriptions.create(apiParams);
+        try {
+            // Call OpenAI Whisper API with retry logic
+            const transcription = await this.retryWithBackoff(async () => {
+                console.log('Calling OpenAI Whisper API...');
+                const startTime = Date.now();
+                const result = await this.openai.audio.transcriptions.create(apiParams);
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                console.log(`OpenAI API call completed in ${duration}s`);
+                return result;
+            });
 
             console.log('Transcription completed successfully');
 
@@ -119,9 +180,13 @@ class TranscriptionService {
             } else if (error.status === 413) {
                 throw new Error('Audio file too large for OpenAI API');
             } else if (error.status === 429) {
-                throw new Error('OpenAI API rate limit exceeded');
+                throw new Error('OpenAI API rate limit exceeded. Please try again later.');
             } else if (error.status === 500) {
-                throw new Error('OpenAI API server error');
+                throw new Error('OpenAI API server error. Please try again later.');
+            } else if (error.message && (error.message.includes('timeout') || error.message.includes('ETIMEDOUT'))) {
+                throw new Error(`Request timeout. The audio file (${fileSizeMB}MB) may be too large or the connection is slow. Try a smaller file or check your internet connection.`);
+            } else if (error.message && (error.message.includes('ECONNRESET') || error.message.includes('ECONNREFUSED') || error.message.includes('Connection error'))) {
+                throw new Error(`Connection error: Unable to reach OpenAI API. Please check your internet connection, firewall settings, or VPN.`);
             }
 
             // Re-throw the error for generic handling

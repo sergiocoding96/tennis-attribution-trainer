@@ -276,11 +276,22 @@
         </div>
 
         <div class="upload-section">
+            <h2>📝 Manual Text Analysis</h2>
+            <p>Paste a transcript or tennis comments directly for analysis</p>
+            
+            <textarea id="manualTextInput" class="edit-input" placeholder="Paste your tennis transcript here..." style="margin-bottom: 15px;"></textarea>
+            <button id="analyzeTextBtn" class="btn secondary">🔍 Analyze Text</button>
+        </div>
+
+        <div class="upload-section">
             <h2>🧠 Attribution Analysis</h2>
             <p>Analyze transcribed audio to identify attribution patterns and mental frameworks</p>
 
             <div id="analysisSection" style="display: none;">
-                <button id="analyzeBtn" class="btn secondary">🔍 Analyze Psychological Patterns</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <button id="analyzeBtn" class="btn secondary">🔍 Analyze Psychological Patterns</button>
+                    <button id="loadSampleBtn" class="btn" style="background-color: #6b7280;">📋 Load Sample Analysis (Test Mode)</button>
+                </div>
                 <div id="analysisStatus"></div>
 
                 <div id="commentAnalysis" style="display: none; margin-top: 20px;">
