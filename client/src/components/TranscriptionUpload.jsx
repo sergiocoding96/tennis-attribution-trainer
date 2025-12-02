@@ -42,6 +42,14 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
     e.preventDefault()
     if (!file) return
 
+    // Validate file size (25MB limit - OpenAI Whisper API maximum)
+    const maxSize = 25 * 1024 * 1024 // 25MB
+    if (file.size > maxSize) {
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+      setError(`File too large: ${fileSizeMB}MB. Maximum size is 25MB. Please compress the file manually before uploading.`)
+      return
+    }
+
     setLoading(true)
     setError(null)
     setIsProcessing(true)
@@ -51,7 +59,6 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
     formData.append('audio', file)
     formData.append('language', 'es')
 
-    try {
       const transResponse = await axios.post('/api/transcribe', formData)
       
       if (transResponse.data.success) {
@@ -232,7 +239,7 @@ Example: 'No jugué bien hoy. La cancha estaba muy lenta y no pude ajustar mi ju
               }`}>
                 {file 
                   ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-                  : 'MP3, WAV, M4A • Max 50MB'
+                  : 'MP3, WAV, M4A • Max 25MB'
                 }
               </p>
             </div>

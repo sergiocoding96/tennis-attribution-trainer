@@ -6,6 +6,9 @@ A web application for training machine learning models to attribute tennis actio
 
 - 🎾 **File Upload**: Upload tennis videos, images, and training datasets
 - 🎤 **Audio Transcription**: AI-powered audio transcription using OpenAI Whisper API
+  - Automatic compression for files >25MB
+  - Automatic splitting for very large files
+  - Supports MP3, WAV, M4A, Opus, and more
 - 📊 **Training Management**: Start and monitor attribution model training
 - 🔒 **Security**: Built with security best practices using Helmet.js
 - 📁 **Static Files**: Serve frontend assets efficiently
@@ -32,12 +35,28 @@ A web application for training machine learning models to attribute tennis actio
    OPENAI_API_KEY=your_actual_openai_api_key_here
    ```
 
-4. **Start development server**:
+4. **Install ffmpeg (Optional but recommended for large files)**:
+   ```bash
+   # Windows (using Chocolatey)
+   choco install ffmpeg
+   
+   # macOS (using Homebrew)
+   brew install ffmpeg
+   
+   # Linux (Ubuntu/Debian)
+   sudo apt-get install ffmpeg
+   
+   # Verify installation
+   ffmpeg -version
+   ```
+   Note: ffmpeg is required for automatic compression and splitting of large audio files (>25MB). Without it, files must be manually compressed.
+
+5. **Start development server**:
    ```bash
    npm run dev
    ```
 
-5. **Visit the application**:
+6. **Visit the application**:
    Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
@@ -68,6 +87,8 @@ tennis-attribution-trainer/
 
 ### Audio Transcription
 - `POST /api/transcribe` - Transcribe audio files using OpenAI Whisper
+  - Supports files up to 500MB (auto-compresses/splits if >25MB)
+  - Requires ffmpeg for large file handling (optional but recommended)
 
 ### File Upload
 - `POST /api/upload` - Upload single file

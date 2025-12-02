@@ -1,6 +1,9 @@
 const OpenAI = require('openai');
 const fs = require('fs-extra');
 const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execPromise = promisify(exec);
 
 class TranscriptionService {
     constructor() {
@@ -16,7 +19,9 @@ class TranscriptionService {
         this.whisperSupportedFormats = ['.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'];
         // Formats we accept (including .opus which we'll convert)
         this.supportedFormats = ['.mp3', '.wav', '.m4a', '.mp4', '.mpeg', '.mpga', '.webm', '.opus', '.ogg', '.oga', '.flac'];
-        this.maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
+        // OpenAI Whisper API has a 25MB limit (26,214,400 bytes)
+        this.maxFileSize = 25 * 1024 * 1024; // 25MB in bytes (OpenAI's actual limit)
+        this.chunkSize = 15 * 1024 * 1024; // 15MB chunks for slicing (smaller to account for WAV being larger)
         this.maxRetries = parseInt(process.env.OPENAI_MAX_RETRIES) || 3;
         this.retryDelay = 1000; // Initial delay in ms
     }
@@ -26,6 +31,26 @@ class TranscriptionService {
      */
     isWhisperSupported(fileExtension) {
         return this.whisperSupportedFormats.includes(fileExtension.toLowerCase());
+    }
+
+    /**
+     * Get MIME type for audio file
+     */
+    getMimeType(filePath) {
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeTypes = {
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.m4a': 'audio/mp4',
+            '.mp4': 'audio/mp4',
+            '.mpeg': 'audio/mpeg',
+            '.mpga': 'audio/mpeg',
+            '.webm': 'audio/webm',
+            '.ogg': 'audio/ogg',
+            '.oga': 'audio/ogg',
+            '.flac': 'audio/flac'
+        };
+        return mimeTypes[ext] || 'audio/mpeg';
     }
 
     /**
@@ -51,12 +76,243 @@ class TranscriptionService {
     }
 
     /**
+     * Check if ffmpeg is available (for audio splitting)
+     * Returns the ffmpeg command/path if available, or null
+     */
+    async checkFfmpegAvailable() {
+        // Try with 'ffmpeg' command first (uses PATH)
+        try {
+            await execPromise('ffmpeg -version', { timeout: 5000 });
+            return 'ffmpeg'; // Return command name if found in PATH
+        } catch (error) {
+            // If that fails, try common Windows installation paths
+            if (process.platform === 'win32') {
+                const commonPaths = [
+                    path.join(process.env.LOCALAPPDATA || '', 'Microsoft\\WinGet\\Links\\ffmpeg.exe'),
+                    'C:\\ffmpeg\\bin\\ffmpeg.exe',
+                    'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+                    'C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe',
+                ];
+                
+                for (const ffmpegPath of commonPaths) {
+                    try {
+                        if (fs.existsSync(ffmpegPath)) {
+                            await execPromise(`"${ffmpegPath}" -version`, { timeout: 5000 });
+                            console.log(`Found ffmpeg at: ${ffmpegPath}`);
+                            return `"${ffmpegPath}"`; // Return full path with quotes
+                        }
+                    } catch (e) {
+                        // Continue to next path
+                    }
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Get audio duration using ffmpeg
+     */
+    async getAudioDuration(filePath) {
+        try {
+            // Try to find ffprobe (usually in same location as ffmpeg)
+            let ffprobeCmd = 'ffprobe';
+            const ffmpegCmd = await this.checkFfmpegAvailable();
+            if (ffmpegCmd && ffmpegCmd !== 'ffmpeg' && ffmpegCmd.includes('ffmpeg.exe')) {
+                // Replace ffmpeg.exe with ffprobe.exe in the path
+                ffprobeCmd = ffmpegCmd.replace('ffmpeg.exe', 'ffprobe.exe');
+            }
+            
+            const { stdout } = await execPromise(`${ffprobeCmd} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`);
+            return parseFloat(stdout.trim()) || 0;
+        } catch (error) {
+            // Fallback: estimate based on file size (rough approximation)
+            const stats = fs.statSync(filePath);
+            // Rough estimate: 1MB ≈ 1 minute for compressed audio
+            return (stats.size / (1024 * 1024)) * 60;
+        }
+    }
+
+    /**
+     * Split audio file into chunks using ffmpeg
+     */
+    async splitAudioFile(filePath, chunkSizeMB = 20) {
+        const ffmpegCmd = await this.checkFfmpegAvailable();
+        if (!ffmpegCmd) {
+            throw new Error('ffmpeg is required for splitting large audio files. Please install ffmpeg (see INSTALL_FFMPEG.md)');
+        }
+
+        const fileStats = fs.statSync(filePath);
+        const fileSizeMB = fileStats.size / (1024 * 1024);
+        
+        // Get audio duration first
+        const duration = await this.getAudioDuration(filePath);
+        
+        // Calculate chunk duration based on target output size
+        // WAV files are uncompressed: ~1.92MB per minute at 16kHz mono 16-bit
+        // Formula: bytes = sample_rate * bytes_per_sample * channels * duration
+        // For 16kHz, 16-bit (2 bytes), mono: 32,000 bytes/second = ~1.92MB/minute
+        // For 25MB limit, we can have ~13 minutes per chunk, but use 70% for safety margin
+        const sampleRate = 16000;
+        const bytesPerSample = 2; // 16-bit = 2 bytes
+        const channels = 1; // mono
+        const wavBytesPerSecond = sampleRate * bytesPerSample * channels; // 32,000 bytes/second
+        const maxChunkSizeBytes = this.maxFileSize * 0.7; // 70% of 25MB = 17.5MB for safety margin
+        const maxChunkDurationSeconds = maxChunkSizeBytes / wavBytesPerSecond; // ~573 seconds = ~9.5 minutes
+        const numChunks = Math.max(1, Math.ceil(duration / maxChunkDurationSeconds));
+        const chunkDurationSeconds = duration / numChunks;
+        
+        console.log(`Splitting ${fileSizeMB.toFixed(2)}MB file (${duration.toFixed(1)}s) into ${numChunks} chunk(s) of ~${(chunkDurationSeconds / 60).toFixed(1)} minutes each...`);
+
+        const chunkDir = path.join(path.dirname(filePath), 'chunks_' + Date.now());
+        await fs.ensureDir(chunkDir);
+
+        const chunkFiles = [];
+
+        try {
+            // Split audio into chunks
+            for (let i = 0; i < numChunks; i++) {
+                const startTime = i * chunkDurationSeconds;
+                const chunkPath = path.join(chunkDir, `chunk_${String(i + 1).padStart(3, '0')}.mp3`);
+                
+                // Use ffmpeg to extract chunk (ffmpegCmd was already obtained above)
+                // Use WAV format for maximum compatibility with OpenAI Whisper API
+                const chunkPathWav = chunkPath.replace('.mp3', '.wav');
+                const command = `${ffmpegCmd} -i "${filePath}" -ss ${startTime} -t ${chunkDurationSeconds} -acodec pcm_s16le -ar 16000 -ac 1 -f wav -y "${chunkPathWav}"`;
+                
+                try {
+                    await execPromise(command);
+                    const chunkStats = fs.statSync(chunkPathWav);
+                    const chunkSizeMB = chunkStats.size / (1024 * 1024);
+                    console.log(`Chunk ${i + 1}/${numChunks} created: ${chunkSizeMB.toFixed(2)}MB`);
+                    
+                    // Verify chunk is under 25MB limit
+                    if (chunkStats.size > this.maxFileSize) {
+                        console.warn(`Warning: Chunk ${i + 1} is ${chunkSizeMB.toFixed(2)}MB, which exceeds the limit. Trying to compress...`);
+                        // If chunk is too large, try to compress it further or reduce duration
+                        // For now, we'll throw an error and suggest manual compression
+                        throw new Error(`Chunk ${i + 1} is too large (${chunkSizeMB.toFixed(2)}MB). The audio file may be too long or have high sample rate. Please compress the original file before uploading.`);
+                    }
+                    
+                    chunkFiles.push(chunkPathWav);
+                } catch (error) {
+                    console.error(`Error creating chunk ${i + 1}:`, error.message);
+                    throw new Error(`Failed to create audio chunk ${i + 1}: ${error.message}`);
+                }
+            }
+
+            return { chunkFiles, chunkDir, isTemporary: true };
+        } catch (error) {
+            // Clean up on error
+            try {
+                await fs.remove(chunkDir);
+            } catch (cleanupError) {
+                console.error('Error cleaning up chunks directory:', cleanupError);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Merge transcription results from multiple chunks
+     */
+    mergeChunkTranscriptions(chunkResults) {
+        if (chunkResults.length === 0) {
+            throw new Error('No transcription results to merge');
+        }
+
+        if (chunkResults.length === 1) {
+            return chunkResults[0].transcription;
+        }
+
+        // Calculate time offsets for each chunk
+        let timeOffset = 0;
+        const mergedSegments = [];
+        const mergedWords = [];
+        let mergedText = '';
+        let detectedLanguage = null;
+        let totalDuration = 0;
+
+        chunkResults.forEach((chunkResult, index) => {
+            // chunkResult.transcription is the full result object from transcribeAudio
+            // which has structure: { success: true, transcription: {...}, metadata: {...} }
+            const result = chunkResult.transcription || {};
+            const transcription = result.transcription || {};
+            
+            // Use language from first chunk
+            if (index === 0) {
+                detectedLanguage = transcription.language;
+            }
+
+            // Merge text
+            if (transcription.text) {
+                mergedText += (mergedText ? ' ' : '') + transcription.text;
+            }
+
+            // Merge segments with adjusted timestamps
+            if (transcription.segments && Array.isArray(transcription.segments)) {
+                transcription.segments.forEach(segment => {
+                    mergedSegments.push({
+                        ...segment,
+                        id: mergedSegments.length,
+                        start: segment.start + timeOffset,
+                        end: segment.end + timeOffset
+                    });
+                });
+            }
+
+            // Merge words with adjusted timestamps
+            if (transcription.words && Array.isArray(transcription.words)) {
+                transcription.words.forEach(word => {
+                    mergedWords.push({
+                        ...word,
+                        start: word.start + timeOffset,
+                        end: word.end + timeOffset
+                    });
+                });
+            }
+
+            // Update time offset for next chunk
+            if (transcription.duration) {
+                timeOffset += transcription.duration;
+                totalDuration += transcription.duration;
+            } else if (transcription.segments && transcription.segments.length > 0) {
+                // Estimate duration from last segment
+                const lastSegment = transcription.segments[transcription.segments.length - 1];
+                timeOffset += lastSegment.end;
+                totalDuration += lastSegment.end;
+            }
+        });
+
+        return {
+            success: true,
+            transcription: {
+                text: mergedText,
+                language: detectedLanguage,
+                duration: totalDuration,
+                segments: mergedSegments,
+                words: mergedWords
+            },
+            metadata: {
+                model: 'whisper-1',
+                response_format: 'verbose_json',
+                processing_time: new Date().toISOString(),
+                chunks_processed: chunkResults.length,
+                merged: true
+            }
+        };
+    }
+
+    /**
      * Validate if the audio file is supported
      */
     validateAudioFile(filePath, originalName, fileSize) {
-        // Check file size
-        if (fileSize > this.maxFileSize) {
-            throw new Error(`File size exceeds 50MB limit. Current size: ${Math.round(fileSize / (1024 * 1024))}MB`);
+        // Allow larger files - we'll slice them into chunks
+        // But set a reasonable upper limit (e.g., 500MB)
+        const absoluteMaxSize = 500 * 1024 * 1024; // 500MB
+        if (fileSize > absoluteMaxSize) {
+            const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+            throw new Error(`File size too large: ${fileSizeMB}MB. Maximum allowed: 500MB. Please split the file manually.`);
         }
 
         // Check file extension
@@ -134,8 +390,25 @@ class TranscriptionService {
         }
         console.log(`Starting transcription for file: ${filePath} (${fileSizeMB}MB)`);
 
-        // Create a readable stream from the file
-        const audioFile = fs.createReadStream(filePath);
+        // Create a File-like object for OpenAI API
+        // The OpenAI SDK needs proper file metadata to detect format
+        const fileBuffer = await fs.readFile(filePath);
+        const fileName = path.basename(filePath);
+        
+        // Create a File object (available in Node.js 18+)
+        // If File is not available, use a stream with metadata
+        let audioFile;
+        if (typeof File !== 'undefined') {
+            audioFile = new File([fileBuffer], fileName, { type: this.getMimeType(filePath) });
+        } else {
+            // Fallback: use stream but ensure filename is in the path
+            // The OpenAI SDK should detect format from extension
+            audioFile = fs.createReadStream(filePath);
+            // Add filename property if SDK supports it
+            if (audioFile.path) {
+                audioFile.name = fileName;
+            }
+        }
 
         // Prepare API parameters, excluding null values
         const apiParams = {
@@ -210,7 +483,8 @@ class TranscriptionService {
             if (error.status === 401) {
                 throw new Error('Invalid OpenAI API key');
             } else if (error.status === 413) {
-                throw new Error('Audio file too large for OpenAI API');
+                const limitMB = (26214400 / (1024 * 1024)).toFixed(0);
+                throw new Error(`Audio file exceeds OpenAI's ${limitMB}MB size limit even after compression. The file may be too large to process. Please try splitting it into smaller segments manually. Maximum allowed size: ${limitMB}MB (26,214,400 bytes).`);
             } else if (error.status === 400) {
                 // Check if it's a format error
                 if (error.message && (error.message.includes('Invalid file format') || error.message.includes('file format'))) {
@@ -236,7 +510,7 @@ class TranscriptionService {
      * Process uploaded audio file and return transcription
      */
     async processAudioFile(filePath, originalName, fileSize, options = {}) {
-        let tempFileToCleanup = null;
+        let tempFileToCleanup = [];
         
         try {
             // Validate the audio file
@@ -252,19 +526,55 @@ class TranscriptionService {
                     const conversionResult = await this.convertOpusToOgg(filePath);
                     actualFilePath = conversionResult.filePath;
                     if (conversionResult.isTemporary) {
-                        tempFileToCleanup = actualFilePath;
+                        tempFileToCleanup.push(actualFilePath);
                     }
                 } else {
                     throw new Error(`File format ${fileExtension} is not supported by Whisper API. Supported formats: ${this.whisperSupportedFormats.join(', ')}`);
                 }
             }
 
-            // Transcribe the audio
-            const result = await this.transcribeAudio(actualFilePath, options);
+            // Check if file needs to be sliced into chunks
+            const currentFileSize = fs.statSync(actualFilePath).size;
+            let result;
 
-            // Clean up temporary file if created
-            if (tempFileToCleanup && fs.existsSync(tempFileToCleanup)) {
-                await this.cleanupFile(tempFileToCleanup);
+            if (currentFileSize > this.maxFileSize) {
+                console.log(`File size (${(currentFileSize / (1024 * 1024)).toFixed(2)}MB) exceeds limit. Slicing into chunks...`);
+                
+                // Split file into chunks
+                const { chunkFiles, chunkDir, isTemporary } = await this.splitAudioFile(actualFilePath, 20);
+                if (isTemporary) {
+                    tempFileToCleanup.push(chunkDir);
+                }
+
+                // Transcribe each chunk
+                const chunkResults = [];
+                for (let i = 0; i < chunkFiles.length; i++) {
+                    console.log(`Transcribing chunk ${i + 1}/${chunkFiles.length}...`);
+                    try {
+                        const chunkResult = await this.transcribeAudio(chunkFiles[i], options);
+                        chunkResults.push({
+                            chunkIndex: i,
+                            transcription: chunkResult
+                        });
+                    } catch (chunkError) {
+                        console.error(`Error transcribing chunk ${i + 1}:`, chunkError);
+                        throw new Error(`Failed to transcribe chunk ${i + 1}: ${chunkError.message}`);
+                    }
+                }
+
+                // Merge transcriptions
+                console.log('Merging transcription results...');
+                result = this.mergeChunkTranscriptions(chunkResults);
+            } else {
+                // File is within limit, transcribe normally
+                result = await this.transcribeAudio(actualFilePath, options);
+            }
+
+            // Clean up temporary files if created
+            for (const tempFile of tempFileToCleanup) {
+                if (fs.existsSync(tempFile)) {
+                    await this.cleanupFile(tempFile);
+                }
             }
 
             return {
@@ -277,12 +587,14 @@ class TranscriptionService {
             };
 
         } catch (error) {
-            // Clean up temporary file on error
-            if (tempFileToCleanup && fs.existsSync(tempFileToCleanup)) {
-                try {
-                    await this.cleanupFile(tempFileToCleanup);
-                } catch (cleanupError) {
-                    console.error('Error cleaning up temporary file:', cleanupError);
+            // Clean up temporary files on error
+            for (const tempFile of tempFileToCleanup) {
+                if (fs.existsSync(tempFile)) {
+                    try {
+                        await this.cleanupFile(tempFile);
+                    } catch (cleanupError) {
+                        console.error('Error cleaning up temporary file:', cleanupError);
+                    }
                 }
             }
             console.error('Audio processing error:', error);

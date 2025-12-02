@@ -1,0 +1,1835 @@
+{
+  "timestamp": "2025-12-02T21:27:42.471Z",
+  "transcription_length": 10977,
+  "transcription_preview": "No sé por qué estoy aquí. ¡Voy, hombre! Bien, vamos. Sergio, aquí tienes el doble. ¡Holy moly, guacachola! ¿Qué es eso? ¿Qué tipo de retorno es ese? Dijo que era de un millón de metros. ¿Qué diablos e...",
+  "analysis": {
+    "segments": [
+      {
+        "segment_id": 1,
+        "quote": "No sé por qué estoy aquí",
+        "timestamp": "unknown",
+        "situation": "Match beginning, questioning presence",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 3,
+            "explanation": "Questioning purpose undermines confidence and commitment",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": "Existential doubt without clear cause"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 2,
+        "quote": "¡Voy, hombre. Bien, vamos",
+        "timestamp": "unknown",
+        "situation": "Self-encouragement to engage",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "energy_management",
+            "helpfulness_score": 7,
+            "explanation": "Activating self-talk to overcome initial hesitation",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Motivational push without causal reasoning"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 3,
+        "quote": "¡Holy moly, guacachola. ¿Qué es eso. ¿Qué tipo de retorno es ese",
+        "timestamp": "unknown",
+        "situation": "Reacting to opponent's strong return",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 5,
+            "explanation": "Acknowledging opponent quality, neutral emotional reaction",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "external",
+            "stability": "unstable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_explanation": "Surprise at opponent skill without self-evaluation"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 4,
+        "quote": "Pero no es el balón, hombre. ¡No es el balón, Sergio. ¡No es el balón, es tú",
+        "timestamp": "unknown",
+        "situation": "Responding to partner blaming equipment",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 8,
+            "explanation": "Redirecting from external excuses to internal control",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "No es el balón, es tú",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 8,
+          "attribution_explanation": "Empowering internal attribution rejecting equipment excuse"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 5,
+        "quote": "¡Dios mío, qué bien. Bien, vamos",
+        "timestamp": "unknown",
+        "situation": "Positive shot execution",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 8,
+            "explanation": "Self-praise followed by forward momentum",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Celebrating success without causal analysis"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 6,
+        "quote": "Es demasiado bueno. ¡Dios mío. Es bueno. Tiene una buena espalda también",
+        "timestamp": "unknown",
+        "situation": "Acknowledging opponent's skill",
+        "helpfulness_score": 4,
+        "psychological_patterns": [
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 4,
+            "explanation": "Dwelling on opponent strength may undermine confidence",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Es demasiado bueno",
+          "dimensions": {
+            "locus": "external",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 3,
+          "attribution_explanation": "External stable attribution creates learned helplessness"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 7,
+        "quote": "Este tipo es tan... Este tipo es tan maldito",
+        "timestamp": "unknown",
+        "situation": "Frustration with opponent",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 3,
+            "explanation": "Expressing frustration without constructive outlet",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "external",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_explanation": "Emotional reaction without causal reasoning"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 8,
+        "quote": "Oh, se me olvidó que tenía un micrófono",
+        "timestamp": "unknown",
+        "situation": "Self-awareness during recording",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 6,
+            "explanation": "Meta-awareness may moderate emotional expression",
+            "intensity": "low"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Neutral self-awareness statement"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 9,
+        "quote": "Mis piernas están ardiendo hoy",
+        "timestamp": "unknown",
+        "situation": "Physical fatigue awareness",
+        "helpfulness_score": 4,
+        "psychological_patterns": [
+          {
+            "type": "energy_management",
+            "helpfulness_score": 4,
+            "explanation": "Acknowledging fatigue may lower performance expectations",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Mis piernas están ardiendo hoy",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "mixed"
+          },
+          "attribution_quality_score": 4,
+          "attribution_explanation": "Physical state attribution may excuse poor performance"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 10,
+        "quote": "¡Buen tiro. ¡Buen tiro, hombre",
+        "timestamp": "unknown",
+        "situation": "Acknowledging partner's shot",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 8,
+            "explanation": "Encouraging partner builds team morale",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "external",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Positive feedback without causal analysis"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 11,
+        "quote": "Nadie podría golpearlo en este momento",
+        "timestamp": "unknown",
+        "situation": "Difficult shot situation",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 3,
+            "explanation": "Generalizing impossibility undermines problem-solving",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Nadie podría golpearlo en este momento",
+          "dimensions": {
+            "locus": "external",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 2,
+          "attribution_explanation": "Helpless attribution removes personal agency"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 12,
+        "quote": "¿No puedes jugar, Ken",
+        "timestamp": "unknown",
+        "situation": "Criticizing partner's play",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Negative partner feedback damages team cohesion",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "¿No puedes jugar, Ken",
+          "dimensions": {
+            "locus": "external",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 2,
+          "attribution_explanation": "Blaming partner creates helplessness and conflict"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 13,
+        "quote": "Es un buen entrenamiento",
+        "timestamp": "unknown",
+        "situation": "Reframing difficult match",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 7,
+            "explanation": "Positive reframing reduces pressure and maintains engagement",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Reframing without explicit causal reasoning"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 14,
+        "quote": "Oh, no puedes perder eso. No puedes perder eso",
+        "timestamp": "unknown",
+        "situation": "Critical point awareness",
+        "helpfulness_score": 4,
+        "psychological_patterns": [
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 4,
+            "explanation": "Dwelling on missed opportunity increases pressure",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Regret statement without causal explanation"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 15,
+        "quote": "Estaba diciendo una mierda en mi cabeza. No, pero tienes que decirlo",
+        "timestamp": "unknown",
+        "situation": "Discussion about verbal communication",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 6,
+            "explanation": "Recognizing need for external communication",
+            "intensity": "low"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Tactical adjustment without causal reasoning"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 16,
+        "quote": "Muy bien, Slice. Lo amé. Lo agarré tan mal",
+        "timestamp": "unknown",
+        "situation": "Mixed evaluation of shot",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 6,
+            "explanation": "Positive outcome despite poor execution",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Lo agarré tan mal",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 5,
+          "attribution_explanation": "Acknowledges poor execution but celebrates outcome"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 17,
+        "quote": "Puedo hacer eso cuatro veces. Necesito hacer eso cuatro veces",
+        "timestamp": "unknown",
+        "situation": "Setting performance goal",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Specific goal-setting builds confidence and direction",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Goal-oriented without causal reasoning"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 18,
+        "quote": "Mantén la presión. Bien. Bien",
+        "timestamp": "unknown",
+        "situation": "Tactical instruction during advantage",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 8,
+            "explanation": "Strategic thinking maintains competitive advantage",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Tactical directive without causal explanation"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 19,
+        "quote": "No puedes ser tonto. No puedes ser tonto con ese tipo",
+        "timestamp": "unknown",
+        "situation": "Self-warning about opponent",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 7,
+            "explanation": "Strategic awareness prevents careless errors",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Self-regulation without causal reasoning"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 20,
+        "quote": "Tienes solo un punto porque le has dado dos",
+        "timestamp": "unknown",
+        "situation": "Analyzing score situation",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 5,
+            "explanation": "Recognizing self-inflicted errors, mixed impact",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "le has dado dos",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 6,
+          "attribution_explanation": "Internal controllable attribution identifies correctable errors"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 21,
+        "quote": "Es un desastre. Es un desastre",
+        "timestamp": "unknown",
+        "situation": "Negative evaluation of situation",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Catastrophizing undermines confidence and problem-solving",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": "Negative evaluation without causal explanation"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 22,
+        "quote": "No es lo que quieres. No es lo que quieres, entonces no lo hagas.",
+        "timestamp": "unknown",
+        "situation": "Correcting shot selection during play",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 7,
+            "explanation": "Redirecting behavior based on strategic goals",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 7,
+            "explanation": "Identifying undesirable shot patterns",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies controllable choice in shot selection"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 23,
+        "quote": "Tienes solo una ventaja. Entonces lo pierdes. Si le das dos.",
+        "timestamp": "unknown",
+        "situation": "Analyzing advantage point management",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 6,
+            "explanation": "Strategic awareness of advantage points",
+            "intensity": "medium"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 4,
+            "explanation": "Dwelling on lost advantage",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Si le das dos",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 7,
+          "attribution_explanation": "Attributes loss to controllable giving away points"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 24,
+        "quote": "Tienes el balón y juegas. Si tienes el balón y juegas. Tienes una oportunidad, al menos.",
+        "timestamp": "unknown",
+        "situation": "Encouraging aggressive play",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 8,
+            "explanation": "Emphasizing proactive ball striking",
+            "intensity": "medium"
+          },
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 7,
+            "explanation": "Framing action as creating opportunity",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies control through active play"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 25,
+        "quote": "Es solo que le estás dando. Le estás dando. Él está sin presión. Porque sigues ahí.",
+        "timestamp": "unknown",
+        "situation": "Analyzing opponent's comfort level",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 7,
+            "explanation": "Identifying tactical error giving opponent comfort",
+            "intensity": "medium"
+          },
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 6,
+            "explanation": "Recognizing need to apply pressure",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Porque sigues ahí",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 7,
+          "attribution_explanation": "Attributes opponent comfort to own passive positioning"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 26,
+        "quote": "En tu ventaja, apuntas a un buen punto. Y luego lo le das.",
+        "timestamp": "unknown",
+        "situation": "Critiquing advantage point execution",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 4,
+            "explanation": "Dwelling on missed opportunity",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 6,
+            "explanation": "Identifying pattern of giving away advantages",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies controllable execution failure"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 27,
+        "quote": "Es una mano trasera. Ayer trabajaste con las manos traseras durante como dos horas. Sabes cómo golpearlas.",
+        "timestamp": "unknown",
+        "situation": "Missing backhand after practice",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 8,
+            "explanation": "Reminding self of preparation and capability",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 7,
+            "explanation": "Connecting practice to match execution",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Ayer trabajaste con las manos traseras durante como dos horas",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 8,
+          "attribution_explanation": "Attributes capability to preparation and training"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 28,
+        "quote": "¡Idiota. ¡Estás arriba. ¡Idiota. ¡Maldito idiota. ¡Maldito idiota. ¡Maldito idiota.",
+        "timestamp": "unknown",
+        "situation": "Error while leading in score",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Harsh repeated self-insult undermining confidence",
+            "intensity": "high"
+          },
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 2,
+            "explanation": "Poor frustration management with escalating negativity",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_explanation": "Name-calling implies stable negative trait"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 29,
+        "quote": "está todo en mi lado porque lo perdí",
+        "timestamp": "unknown",
+        "situation": "Ball call going against player",
+        "helpfulness_score": 4,
+        "psychological_patterns": [
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 3,
+            "explanation": "Dwelling on lost point",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 5,
+            "explanation": "Recognizing consequence of error",
+            "intensity": "low"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "porque lo perdí",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 6,
+          "attribution_explanation": "Takes responsibility but dwells on past"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 30,
+        "quote": "grandes margens, grandes margines ok",
+        "timestamp": "unknown",
+        "situation": "Adjusting tactical approach",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 8,
+            "explanation": "Clear strategic adjustment for safety",
+            "intensity": "medium"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Moving to next point with plan",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies controllable tactical choice"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 31,
+        "quote": "ok, ahora, 15 y 0 así que si puedo hacer un pequeño descanso aquí eso sería genial",
+        "timestamp": "unknown",
+        "situation": "Opportunity for break point",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Focusing on immediate opportunity ahead",
+            "intensity": "medium"
+          },
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 7,
+            "explanation": "Identifying strategic moment for break",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Frames break as achievable goal"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 32,
+        "quote": "y luego le das una puta mano fácil",
+        "timestamp": "unknown",
+        "situation": "Missing easy shot",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 3,
+            "explanation": "Harsh criticism of execution",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 3,
+            "explanation": "Dwelling on missed easy shot",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies controllable but poorly executed shot"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 33,
+        "quote": "es un buen descanso pero un descanso no es un descanso a menos que te detengas",
+        "timestamp": "unknown",
+        "situation": "After getting break point",
+        "helpfulness_score": 9,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 9,
+            "explanation": "Strategic understanding of consolidating break",
+            "intensity": "high"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 9,
+            "explanation": "Immediately focusing on next task",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Emphasizes controllable consolidation of advantage"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 34,
+        "quote": "No me importa más mis piernas. Sólo quiero ganar. Así que mis piernas. Si me siento bien, no me importa. Si me siento mal, no me importa. Solo quiero ganar.",
+        "timestamp": "unknown",
+        "situation": "Managing physical fatigue",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "energy_management",
+            "helpfulness_score": 8,
+            "explanation": "Prioritizing outcome over physical discomfort",
+            "intensity": "high"
+          },
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 8,
+            "explanation": "Reframing physical state as irrelevant",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Frames winning as independent of physical state"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 35,
+        "quote": "Estás tonto. No, no estoy tonto. Idiota. Sí, no, estoy tonto. Es verdad. Es verdad. Estás arruinándolo. Arruinándolo.",
+        "timestamp": "unknown",
+        "situation": "Internal dialogue after error",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Harsh self-labeling and agreement with negativity",
+            "intensity": "high"
+          },
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 2,
+            "explanation": "Poor management of frustration",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Estás arruinándolo",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 2,
+          "attribution_explanation": "Attributes to stable trait creating helplessness"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 36,
+        "quote": "No me importa que me pierda, ¿sabes. Digo, vamos. Pero no me importa, así que... Voy a tomar lo que tengo.",
+        "timestamp": "unknown",
+        "situation": "Accepting situation and moving forward",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 7,
+            "explanation": "Accepting outcome and reducing pressure",
+            "intensity": "medium"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 7,
+            "explanation": "Moving on from potential loss",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Frames outcome as acceptable regardless"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 37,
+        "quote": "Dos vueltas fáciles, tío. En las cuatro manos. En ambas manos.",
+        "timestamp": "unknown",
+        "situation": "Analyzing opponent's easy winners",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 5,
+            "explanation": "Identifying opponent's winning pattern",
+            "intensity": "medium"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 4,
+            "explanation": "Dwelling on opponent's success",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "external",
+            "stability": "unstable",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": "Focuses on opponent's execution"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 38,
+        "quote": "Y has hecho un montón de mierda. Ahora te han llevado de vuelta. Como un pequeño perro.",
+        "timestamp": "unknown",
+        "situation": "Losing momentum after errors",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Demeaning self-comparison undermining confidence",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 2,
+            "explanation": "Dwelling on accumulated errors",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "has hecho un montón de mierda",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 3,
+          "attribution_explanation": "Controllable but framed with demeaning language"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 39,
+        "quote": "Esa es la mierda más mala que he jugado. Me hubiera jodido, tío.",
+        "timestamp": "unknown",
+        "situation": "Reflecting on poor play quality",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 3,
+            "explanation": "Extreme negative evaluation of performance",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 2,
+            "explanation": "Dwelling on poor quality play",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Extreme negative framing of controllable performance"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 40,
+        "quote": "Haga eso dos más veces.",
+        "timestamp": "unknown",
+        "situation": "After successful point",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Immediately planning repetition of success",
+            "intensity": "medium"
+          },
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 7,
+            "explanation": "Reinforcing successful pattern",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Implies repeatable controllable action"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 41,
+        "quote": "Tío, sigues doblando. Doblar no es lo que quieres hacer.",
+        "timestamp": "unknown",
+        "situation": "Double fault pattern",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 6,
+            "explanation": "Identifying repeated double fault issue",
+            "intensity": "medium"
+          },
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 5,
+            "explanation": "Recognizing undesirable pattern",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_explanation": "Identifies controllable pattern to change"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 42,
+        "quote": "¿Qué es ese golpe. Sólo golpea. ¡No. ¡No lo hiciste. ¡Joder. Eres un idiota",
+        "timestamp": "unknown",
+        "situation": "Poor shot execution",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Harsh self-insult after error",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 2,
+            "explanation": "Dwelling on poor shot choice",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_explanation": "Name-calling implies stable negative trait"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 43,
+        "quote": "Es un idiota, hermano.",
+        "timestamp": "unknown",
+        "situation": "Expressing frustration about someone/something",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "External blame or self-directed insult undermines composure",
+            "intensity": "medium"
+          },
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 2,
+            "explanation": "Venting frustration without constructive outlet",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 44,
+        "quote": "¡Sí. ¡Vamos. 5-4, hermano.",
+        "timestamp": "unknown",
+        "situation": "Celebrating winning a game, leading 5-4",
+        "helpfulness_score": 9,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 9,
+            "explanation": "Celebrating success and tracking score positively",
+            "intensity": "high"
+          },
+          {
+            "type": "energy_management",
+            "helpfulness_score": 9,
+            "explanation": "Building momentum through enthusiastic celebration",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 45,
+        "quote": "¿Qué diablos es eso. Es una mierda de vuelta, pero tengo el punto",
+        "timestamp": "unknown",
+        "situation": "Criticizing shot quality but acknowledging winning the point",
+        "helpfulness_score": 5,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 4,
+            "explanation": "Criticizing execution despite positive outcome",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 6,
+            "explanation": "Recognizing result matters more than aesthetics",
+            "intensity": "low"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Es una mierda de vuelta, pero tengo el punto",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 6,
+          "attribution_explanation": "Acknowledges poor execution but focuses on positive outcome"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 46,
+        "quote": "Juega la puta bola.",
+        "timestamp": "unknown",
+        "situation": "Self-instruction during play",
+        "helpfulness_score": 7,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 7,
+            "explanation": "Direct command to stay focused on execution",
+            "intensity": "medium"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 7,
+            "explanation": "Redirecting attention to immediate task",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 47,
+        "quote": "Sí, no te asustes.",
+        "timestamp": "unknown",
+        "situation": "Self-coaching to manage anxiety",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 8,
+            "explanation": "Actively managing fear response in pressure situation",
+            "intensity": "medium"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Preventing negative anticipation from affecting performance",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 48,
+        "quote": "Qué idiota estúpida fue.",
+        "timestamp": "unknown",
+        "situation": "Self-criticism after mistake",
+        "helpfulness_score": 1,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 1,
+            "explanation": "Harsh personal attack undermines confidence and composure",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 1,
+            "explanation": "Dwelling on past error with destructive language",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Qué idiota estúpida fue",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 2,
+          "attribution_explanation": "Attributes error to stable personal trait, creating helplessness"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 49,
+        "quote": "Buen trabajo. Es una buena bola, ¿verdad. Una puta buena bola.",
+        "timestamp": "unknown",
+        "situation": "Self-praise after good shot",
+        "helpfulness_score": 9,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 9,
+            "explanation": "Enthusiastically reinforcing quality execution",
+            "intensity": "high"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 8,
+            "explanation": "Acknowledging and celebrating good technique",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Es una buena bola",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 9,
+          "attribution_explanation": "Attributes success to controllable execution, builds confidence"
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 50,
+        "quote": "No sé qué mierda estoy haciendo.",
+        "timestamp": "unknown",
+        "situation": "Expressing confusion about performance",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Expressing loss of control and understanding",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 2,
+            "explanation": "Dwelling on confusion without seeking solution",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "No sé qué mierda estoy haciendo",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 3,
+          "attribution_explanation": "Expresses lack of control, undermines sense of agency"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 51,
+        "quote": "Sería bueno hacer un serve.",
+        "timestamp": "unknown",
+        "situation": "Acknowledging need for successful serve",
+        "helpfulness_score": 6,
+        "psychological_patterns": [
+          {
+            "type": "tactical_focus",
+            "helpfulness_score": 6,
+            "explanation": "Identifying specific performance need",
+            "intensity": "low"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 6,
+            "explanation": "Focusing on next task requirement",
+            "intensity": "low"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 52,
+        "quote": "Tienes una mierda de atención, hombre. Tienes una mierda de atención.",
+        "timestamp": "unknown",
+        "situation": "Criticizing own concentration",
+        "helpfulness_score": 2,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 2,
+            "explanation": "Harsh criticism of mental skill without solution",
+            "intensity": "high"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 4,
+            "explanation": "Identifying attention issue but destructively",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Tienes una mierda de atención",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 2,
+          "attribution_explanation": "Attributes problem to stable trait, implies unchangeable deficit"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 53,
+        "quote": "Tienes que ser positivo aquí.",
+        "timestamp": "unknown",
+        "situation": "Self-instruction to change mindset",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 8,
+            "explanation": "Recognizing need for attitude adjustment",
+            "intensity": "medium"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 8,
+            "explanation": "Redirecting mental approach for upcoming play",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 54,
+        "quote": "Dos putos dobles falsos, hombre. Hombre, deberías dejar de jugar tenis.",
+        "timestamp": "unknown",
+        "situation": "Severe self-criticism after double faults",
+        "helpfulness_score": 1,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 1,
+            "explanation": "Catastrophic thinking suggesting quitting the sport",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 1,
+            "explanation": "Dwelling on errors with extreme negative conclusion",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "deberías dejar de jugar tenis",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 1,
+          "attribution_explanation": "Extreme stable attribution implying fundamental incompetence"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 55,
+        "quote": "O sea, no puedes hacer más. No, no incluso más. Eres una mierda. No puedes hacer un serve.",
+        "timestamp": "unknown",
+        "situation": "Continued harsh self-criticism",
+        "helpfulness_score": 1,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 1,
+            "explanation": "Repeated declarations of inability and worthlessness",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 1,
+            "explanation": "Spiraling negative self-talk without recovery attempt",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "No puedes hacer un serve",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 1,
+          "attribution_explanation": "Fixed ability attribution creates learned helplessness"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 56,
+        "quote": "No puedes hacer esto, hombre.",
+        "timestamp": "unknown",
+        "situation": "Continued negative self-talk",
+        "helpfulness_score": 1,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 1,
+            "explanation": "Reinforcing belief in inability",
+            "intensity": "high"
+          },
+          {
+            "type": "backward_focus",
+            "helpfulness_score": 1,
+            "explanation": "Persisting in negative evaluation",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "No puedes hacer esto",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "stable",
+            "controllability": "uncontrollable"
+          },
+          "attribution_quality_score": 1,
+          "attribution_explanation": "Absolute statement of inability undermines all confidence"
+        },
+        "focus_direction": "backward"
+      },
+      {
+        "segment_id": 57,
+        "quote": "Es una buena bola. Es una buena bola.",
+        "timestamp": "unknown",
+        "situation": "Acknowledging good shot execution",
+        "helpfulness_score": 8,
+        "psychological_patterns": [
+          {
+            "type": "positive_reinforcement",
+            "helpfulness_score": 8,
+            "explanation": "Repeated affirmation of quality execution",
+            "intensity": "medium"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 7,
+            "explanation": "Recognizing and reinforcing successful technique",
+            "intensity": "medium"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": false,
+          "attribution_statement": "",
+          "dimensions": {
+            "locus": "mixed",
+            "stability": "mixed",
+            "controllability": "mixed"
+          },
+          "attribution_explanation": ""
+        },
+        "focus_direction": "present"
+      },
+      {
+        "segment_id": 58,
+        "quote": "Bien, vamos, positivo, positivo, positivo, positivo. Cambia el hábito. Cambia el hábito. Cambia el hábito.",
+        "timestamp": "unknown",
+        "situation": "Attempting to shift mindset through repetition",
+        "helpfulness_score": 9,
+        "psychological_patterns": [
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 9,
+            "explanation": "Actively working to change negative thought pattern",
+            "intensity": "high"
+          },
+          {
+            "type": "forward_focus",
+            "helpfulness_score": 9,
+            "explanation": "Deliberately redirecting mental approach",
+            "intensity": "high"
+          },
+          {
+            "type": "pattern_recognition",
+            "helpfulness_score": 8,
+            "explanation": "Recognizing destructive pattern and choosing change",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "Cambia el hábito",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 9,
+          "attribution_explanation": "Recognizes negative pattern as changeable habit under control"
+        },
+        "focus_direction": "forward"
+      },
+      {
+        "segment_id": 59,
+        "quote": "¿Puedo hacer un serve.",
+        "timestamp": "unknown",
+        "situation": "Repeated questioning of ability to serve (repeated many times)",
+        "helpfulness_score": 3,
+        "psychological_patterns": [
+          {
+            "type": "self_criticism",
+            "helpfulness_score": 3,
+            "explanation": "Obsessive questioning reveals deep doubt and anxiety",
+            "intensity": "high"
+          },
+          {
+            "type": "emotional_regulation",
+            "helpfulness_score": 4,
+            "explanation": "Attempting to process anxiety through repetition",
+            "intensity": "high"
+          }
+        ],
+        "attribution_analysis": {
+          "has_attribution": true,
+          "attribution_statement": "¿Puedo hacer un serve",
+          "dimensions": {
+            "locus": "internal",
+            "stability": "unstable",
+            "controllability": "controllable"
+          },
+          "attribution_quality_score": 4,
+          "attribution_explanation": "Question format shows doubt but implies possibility of control"
+        },
+        "focus_direction": "forward"
+      }
+    ],
+    "analysis_summary": {
+      "total_segments": 59,
+      "helpful_thought_ratio": "41%",
+      "average_intensity": "medium",
+      "focus_direction_ratio": "31% forward",
+      "attribution_count": 23,
+      "average_attribution_quality": 4,
+      "pattern_distribution": {
+        "positive_reinforcement": 10,
+        "self_criticism": 23,
+        "tactical_focus": 17,
+        "emotional_regulation": 15,
+        "forward_focus": 16,
+        "backward_focus": 21,
+        "energy_management": 5,
+        "pattern_recognition": 14
+      },
+      "key_insights": [
+        "Fluctuates between empowering internal attributions and helpless external ones",
+        "Strong tactical awareness when calm but catastrophizes under pressure",
+        "Effective at encouraging partner but also criticizes destructively",
+        "Reframes difficulty positively but dwells on opponent superiority",
+        "High self-criticism intensity with repeated harsh self-labeling undermining confidence"
+      ],
+      "dominant_patterns": [
+        "tactical_focus",
+        "self_criticism",
+        "emotional_regulation"
+      ]
+    }
+  },
+  "metadata": {
+    "transcription_length": 10977,
+    "analysis_timestamp": "2025-12-02T21:27:42.468Z",
+    "segments_found": 59
+  }
+}

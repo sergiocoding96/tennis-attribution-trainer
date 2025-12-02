@@ -92,7 +92,7 @@ const audioStorage = multer.diskStorage({
 const audioUpload = multer({
     storage: audioStorage,
     limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB limit for audio files
+        fileSize: 500 * 1024 * 1024, // 500MB limit (will be sliced into 20MB chunks if > 25MB)
     },
     fileFilter: function (req, file, cb) {
         // Accept audio formats supported by Whisper (including .opus which we'll convert)
@@ -444,10 +444,19 @@ app.use((error, req, res, next) => {
 
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
+            // Check if this is an audio upload (transcribe endpoint)
+            const isAudioUpload = req.path === '/api/transcribe';
+            const maxSize = isAudioUpload ? '500MB (will be automatically sliced into 20MB chunks if > 25MB)' : '25MB';
+            return res.status(400).json({ 
+                success: false,
+                error: `File too large. Maximum size is ${maxSize}.` 
+            });
         }
         if (error.code === 'LIMIT_FILE_COUNT') {
-            return res.status(400).json({ error: 'Too many files' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Too many files' 
+            });
         }
     }
 

@@ -19,10 +19,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Validate file size (50MB limit)
-            const maxSize = 50 * 1024 * 1024;
+            // Validate file size (25MB limit - OpenAI Whisper API maximum)
+            const maxSize = 25 * 1024 * 1024; // 25MB (OpenAI's limit)
             if (file.size > maxSize) {
-                showTranscriptionStatus(`File too large. Maximum size is 50MB. Current file: ${Math.round(file.size / (1024 * 1024))}MB`, 'error');
+                showTranscriptionStatus(`File too large. Maximum size is 25MB. Current file: ${Math.round(file.size / (1024 * 1024))}MB. Please compress the file manually before uploading.`, 'error');
                 return;
             }
 
