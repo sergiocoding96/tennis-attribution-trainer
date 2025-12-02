@@ -12,10 +12,42 @@ class TranscriptionService {
             timeout: timeout,
         });
 
-        this.supportedFormats = ['.mp3', '.wav', '.m4a', '.mp4', '.mpeg', '.mpga', '.webm'];
+        // Formats supported by Whisper API
+        this.whisperSupportedFormats = ['.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'];
+        // Formats we accept (including .opus which we'll convert)
+        this.supportedFormats = ['.mp3', '.wav', '.m4a', '.mp4', '.mpeg', '.mpga', '.webm', '.opus', '.ogg', '.oga', '.flac'];
         this.maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
         this.maxRetries = parseInt(process.env.OPENAI_MAX_RETRIES) || 3;
         this.retryDelay = 1000; // Initial delay in ms
+    }
+
+    /**
+     * Check if format is directly supported by Whisper API
+     */
+    isWhisperSupported(fileExtension) {
+        return this.whisperSupportedFormats.includes(fileExtension.toLowerCase());
+    }
+
+    /**
+     * Convert .opus file to .ogg format (since Whisper API supports .ogg but not .opus)
+     */
+    async convertOpusToOgg(opusPath) {
+        const ext = path.extname(opusPath).toLowerCase();
+        
+        if (ext === '.opus') {
+            // Create temporary .ogg file (since .opus files are often Ogg Opus)
+            const oggPath = opusPath.replace(/\.opus$/i, '.ogg');
+            try {
+                await fs.copy(opusPath, oggPath);
+                console.log(`Converted .opus to .ogg: ${path.basename(oggPath)}`);
+                return { filePath: oggPath, isTemporary: true };
+            } catch (error) {
+                console.error('Failed to convert .opus file:', error);
+                throw new Error('Could not convert .opus file. Please convert to MP3 or WAV format.');
+            }
+        }
+        
+        return { filePath: opusPath, isTemporary: false };
     }
 
     /**
@@ -179,6 +211,12 @@ class TranscriptionService {
                 throw new Error('Invalid OpenAI API key');
             } else if (error.status === 413) {
                 throw new Error('Audio file too large for OpenAI API');
+            } else if (error.status === 400) {
+                // Check if it's a format error
+                if (error.message && (error.message.includes('Invalid file format') || error.message.includes('file format'))) {
+                    throw new Error('Audio file format not supported by Whisper API. Please convert to MP3, WAV, or another supported format.');
+                }
+                throw new Error(`Bad request: ${error.message || 'Invalid file format or parameters'}`);
             } else if (error.status === 429) {
                 throw new Error('OpenAI API rate limit exceeded. Please try again later.');
             } else if (error.status === 500) {
@@ -198,12 +236,36 @@ class TranscriptionService {
      * Process uploaded audio file and return transcription
      */
     async processAudioFile(filePath, originalName, fileSize, options = {}) {
+        let tempFileToCleanup = null;
+        
         try {
             // Validate the audio file
             this.validateAudioFile(filePath, originalName, fileSize);
 
+            // Check if we need to convert the file format
+            const fileExtension = path.extname(originalName).toLowerCase();
+            let actualFilePath = filePath;
+            
+            // If .opus file, convert to .ogg (Whisper API supports .ogg but not .opus)
+            if (fileExtension === '.opus' || !this.isWhisperSupported(fileExtension)) {
+                if (fileExtension === '.opus') {
+                    const conversionResult = await this.convertOpusToOgg(filePath);
+                    actualFilePath = conversionResult.filePath;
+                    if (conversionResult.isTemporary) {
+                        tempFileToCleanup = actualFilePath;
+                    }
+                } else {
+                    throw new Error(`File format ${fileExtension} is not supported by Whisper API. Supported formats: ${this.whisperSupportedFormats.join(', ')}`);
+                }
+            }
+
             // Transcribe the audio
-            const result = await this.transcribeAudio(filePath, options);
+            const result = await this.transcribeAudio(actualFilePath, options);
+
+            // Clean up temporary file if created
+            if (tempFileToCleanup && fs.existsSync(tempFileToCleanup)) {
+                await this.cleanupFile(tempFileToCleanup);
+            }
 
             return {
                 ...result,
@@ -215,6 +277,14 @@ class TranscriptionService {
             };
 
         } catch (error) {
+            // Clean up temporary file on error
+            if (tempFileToCleanup && fs.existsSync(tempFileToCleanup)) {
+                try {
+                    await this.cleanupFile(tempFileToCleanup);
+                } catch (cleanupError) {
+                    console.error('Error cleaning up temporary file:', cleanupError);
+                }
+            }
             console.error('Audio processing error:', error);
             throw error;
         }

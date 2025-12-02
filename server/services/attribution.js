@@ -28,44 +28,100 @@ class AttributionService {
             // If valid, return parsed
             return JSON.parse(jsonString);
         } catch (e) {
-            console.log('Attempting to repair truncated JSON...');
+            console.log('Attempting to repair JSON...');
             let repaired = jsonString.trim();
             
-            // Check if it ends with a closing brace
-            if (repaired.endsWith('}')) return JSON.parse(repaired); // Should have been caught above
-
+            // Remove any trailing commas before closing braces/brackets
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+            
+            // Remove any comments or invalid characters that might cause issues
+            // (though JSON shouldn't have comments, Claude sometimes adds them)
+            repaired = repaired.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove /* comments */
+            repaired = repaired.replace(/\/\/.*$/gm, ''); // Remove // comments
+            
+            // Try parsing again after basic cleanup
+            try {
+                return JSON.parse(repaired);
+            } catch (e2) {
+                // If still fails, try structural repair
+            }
+            
             // Find the last valid closing structure
             const lastObjectEnd = repaired.lastIndexOf('}');
             const lastArrayEnd = repaired.lastIndexOf(']');
             
             // If we have a segments array that was cut off
-            if (repaired.includes('"segments": [')) {
-                // Try to close the segments array and the main object
-                // Remove trailing comma if present
-                if (repaired.endsWith(',')) repaired = repaired.slice(0, -1);
+            if (repaired.includes('"segments"')) {
+                // Count open/close braces to see what's unclosed
+                let openBraces = (repaired.match(/\{/g) || []).length;
+                let closeBraces = (repaired.match(/\}/g) || []).length;
+                let openBrackets = (repaired.match(/\[/g) || []).length;
+                let closeBrackets = (repaired.match(/\]/g) || []).length;
                 
+                // Remove trailing comma if present
+                repaired = repaired.replace(/,(\s*)$/, '');
+                
+                // Close unclosed structures
                 // If inside an object in the array (unclosed object)
-                if (repaired.lastIndexOf('{') > repaired.lastIndexOf('}')) {
-                    // Close the current object
-                    repaired += '}]';
-                } else if (repaired.lastIndexOf(']') < repaired.lastIndexOf('}')) {
-                    // Array open but not closed
-                    repaired += ']';
+                if (openBraces > closeBraces) {
+                    // Close the current object(s)
+                    for (let i = 0; i < openBraces - closeBraces; i++) {
+                        repaired += '}';
+                    }
                 }
                 
-                // Close main object
-                if (!repaired.endsWith('}')) repaired += '}';
+                // Close unclosed arrays
+                if (openBrackets > closeBrackets) {
+                    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+                        repaired += ']';
+                    }
+                }
+                
+                // Ensure main object is closed
+                if (!repaired.endsWith('}')) {
+                    // Count again after adding closing brackets
+                    openBraces = (repaired.match(/\{/g) || []).length;
+                    closeBraces = (repaired.match(/\}/g) || []).length;
+                    if (openBraces > closeBraces) {
+                        repaired += '}';
+                    }
+                }
                 
                 try {
                     const parsed = JSON.parse(repaired);
                     console.log('JSON repaired successfully');
                     return parsed;
                 } catch (repairError) {
-                    console.error('Failed to repair JSON:', repairError);
-                    throw e; // Throw original error
+                    console.error('Failed to repair JSON after structural fixes');
+                    console.error('Error at position:', repairError.message);
+                    // Try to find where the error is
+                    const match = repairError.message.match(/position (\d+)/);
+                    if (match) {
+                        const pos = parseInt(match[1]);
+                        const start = Math.max(0, pos - 50);
+                        const end = Math.min(repaired.length, pos + 50);
+                        console.error('Context around error:', repaired.substring(start, end));
+                    }
+                    throw new Error(`JSON repair failed: ${repairError.message}. Original error: ${e.message}`);
                 }
             }
-            throw e;
+            
+            // If no segments found, try basic repair
+            try {
+                // Remove trailing comma
+                repaired = repaired.replace(/,(\s*)$/, '');
+                // Ensure it ends with }
+                if (!repaired.endsWith('}')) {
+                    const openCount = (repaired.match(/\{/g) || []).length;
+                    const closeCount = (repaired.match(/\}/g) || []).length;
+                    for (let i = 0; i < openCount - closeCount; i++) {
+                        repaired += '}';
+                    }
+                }
+                return JSON.parse(repaired);
+            } catch (finalError) {
+                throw new Error(`Could not repair JSON: ${finalError.message}. Original: ${e.message}`);
+            }
         }
     }
 
@@ -116,6 +172,8 @@ class AttributionService {
         const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.${chunkContext}
 
 TRANSCRIPTION: "${chunk}"
+
+IMPORTANT: Respond with ONLY valid JSON. Do not include markdown code blocks, explanations, or any text outside the JSON object. Start your response with { and end with }.
 
 For each distinct quote/comment, provide a JSON response with this structure:
 
@@ -209,23 +267,71 @@ Focus on realistic, observable patterns. Keep explanations concise to save space
             });
 
             const responseText = response.content[0].text;
+            
+            // Log response length for debugging
+            console.log(`Claude response length: ${responseText.length} characters`);
 
-            // Try to parse the JSON response
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            // Extract JSON from response - handle markdown code blocks and other formatting
+            let jsonString = responseText.trim();
+            
+            // Remove markdown code blocks if present
+            jsonString = jsonString.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+            jsonString = jsonString.replace(/\s*```$/i, '');
+            
+            // Log first 200 chars to see what we're working with
+            if (jsonString.length > 200) {
+                console.log('JSON string preview:', jsonString.substring(0, 200) + '...');
+            } else {
+                console.log('JSON string:', jsonString);
+            }
+            
+            // Try to find JSON object in the response
+            let jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+            
+            // If no match, try to find JSON that might be embedded in text
+            if (!jsonMatch) {
+                // Look for JSON starting with { and try to extract it
+                const startIdx = jsonString.indexOf('{');
+                if (startIdx !== -1) {
+                    // Try to find the matching closing brace
+                    let braceCount = 0;
+                    let endIdx = startIdx;
+                    for (let i = startIdx; i < jsonString.length; i++) {
+                        if (jsonString[i] === '{') braceCount++;
+                        if (jsonString[i] === '}') braceCount--;
+                        if (braceCount === 0) {
+                            endIdx = i;
+                            break;
+                        }
+                    }
+                    if (endIdx > startIdx) {
+                        jsonMatch = [jsonString.substring(startIdx, endIdx + 1)];
+                    }
+                }
+            }
+            
             if (jsonMatch) {
                 // Try to parse, using repair logic if needed
                 try {
                     return JSON.parse(jsonMatch[0]);
                 } catch (parseError) {
-                    // If simple parse fails, try to repair (likely truncation)
-                    return this.repairJson(jsonMatch[0]);
+                    console.log('Initial JSON parse failed, attempting repair...');
+                    // If simple parse fails, try to repair (likely truncation or malformed)
+                    try {
+                        return this.repairJson(jsonMatch[0]);
+                    } catch (repairError) {
+                        console.error('JSON repair failed:', repairError.message);
+                        console.error('JSON snippet (first 500 chars):', jsonMatch[0].substring(0, 500));
+                        throw new Error(`Failed to parse JSON response: ${repairError.message}`);
+                    }
                 }
             } else {
                 // Try to repair the raw text if regex failed to find a complete block
                 try {
-                    return this.repairJson(responseText);
+                    return this.repairJson(jsonString);
                 } catch (e) {
-                    throw new Error('No valid JSON found in response');
+                    console.error('No valid JSON found in response. Response preview:', responseText.substring(0, 500));
+                    throw new Error('No valid JSON found in Claude response. The response may be malformed.');
                 }
             }
         } catch (error) {

@@ -25,9 +25,13 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
       
       if (response.data.success) {
         setAnalysisData(response.data.data)
+      } else {
+        setError(response.data.error || 'Analysis failed. Please try again.')
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message)
+      const errorMsg = err.response?.data?.error || err.message || 'Analysis failed. Please check your connection and try again.'
+      setError(errorMsg)
+      console.error('Analysis error:', err)
     } finally {
       setLoading(false)
       setIsProcessing(false)
@@ -61,10 +65,16 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
 
         if (analyzeResponse.data.success) {
           setAnalysisData(analyzeResponse.data.data)
+        } else {
+          setError(analyzeResponse.data.error || 'Analysis failed. Please try again.')
         }
+      } else {
+        setError(transResponse.data.error || 'Transcription failed. Please try again.')
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message)
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to process audio. Please check your connection and try again.'
+      setError(errorMsg)
+      console.error('Processing error:', err)
     } finally {
       setLoading(false)
       setIsProcessing(false)
@@ -81,9 +91,13 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
       const response = await axios.get('/api/sample-analysis')
       if (response.data.success) {
         setAnalysisData(response.data.data)
+      } else {
+        setError(response.data.error || 'Failed to load sample data')
       }
     } catch (err) {
-      setError('Failed to load sample data')
+      const errorMsg = err.response?.data?.error || 'Failed to load sample data. The sample file may be missing.'
+      setError(errorMsg)
+      console.error('Sample data load error:', err)
     } finally {
       setLoading(false)
       setIsProcessing(false)
