@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function clearAnalysisResult() {
         const resultDiv = document.getElementById('analysisResult');
         resultDiv.innerHTML = '';
+        currentAnalysisData = null;
     }
 
     function displayAnalysisResult(analysisData) {
