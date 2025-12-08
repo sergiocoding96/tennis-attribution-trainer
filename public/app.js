@@ -207,6 +207,15 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         ` : '';
 
+        // Emotion analysis
+        const emotionAnalysis = comment.emotion_analysis || {};
+        const primaryEmotion = emotionAnalysis.primary_emotion;
+        const emotionBadge = primaryEmotion ? `
+            <div class="helpfulness-badge" style="margin-left: 8px; background: ${primaryEmotion.color}20; color: ${primaryEmotion.color}; border: 1px solid ${primaryEmotion.color}40;">
+                ${primaryEmotion.icon} ${primaryEmotion.name}
+            </div>
+        ` : '';
+
         const patternsHtml = comment.patterns.map(pattern => {
             const patternColor = getScoreColor(pattern.helpfulness_score);
             return `
@@ -253,16 +262,55 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         ` : '';
 
+        // Emotion analysis section
+        const emotionAnalysisHtml = primaryEmotion ? `
+            <div style="margin-bottom: 16px; background: ${primaryEmotion.color}10; border: 1px solid ${primaryEmotion.color}40; border-radius: 6px; padding: 12px;">
+                <h4 style="margin: 0 0 8px 0; color: ${primaryEmotion.color}; display: flex; align-items: center;">
+                    🧠 Emotion Analysis
+                    <span style="margin-left: 8px; font-size: 1.2rem;">${primaryEmotion.icon}</span>
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 8px;">
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">EMOTION</div>
+                        <div style="font-weight: bold; color: ${primaryEmotion.color};">${primaryEmotion.name}</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">ENERGY</div>
+                        <div style="font-weight: bold;">${primaryEmotion.arousal}/10</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">TIMELINE</div>
+                        <div style="font-weight: bold;">${primaryEmotion.timeline}</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">RISK</div>
+                        <div style="font-weight: bold; color: ${primaryEmotion.danger === 'Critical' || primaryEmotion.danger === 'High' ? '#EF4444' : primaryEmotion.danger === 'Moderate-High' || primaryEmotion.danger === 'Moderate' ? '#F59E0B' : '#10B981'};">${primaryEmotion.danger}</div>
+                    </div>
+                </div>
+                ${emotionAnalysis.is_in_peak_zone ? `
+                    <div style="background: #D1FAE5; border: 1px solid #10B981; border-radius: 4px; padding: 8px; margin-bottom: 8px;">
+                        <span style="color: #047857; font-weight: 600;">✅ In Peak Performance Zone!</span>
+                    </div>
+                ` : `
+                    <div style="background: white; border-radius: 4px; padding: 8px;">
+                        <strong style="color: ${primaryEmotion.color};">💡 Recommended Action:</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 13px;">${emotionAnalysis.recommended_action}</p>
+                    </div>
+                `}
+            </div>
+        ` : '';
+
         return `
             <div class="comment-card" data-comment-id="${comment.comment_id}">
                 <div class="collapsed-view">
                     <div class="comment-header">
                         <span style="font-weight: 600;">Comment ${comment.comment_id}</span>
-                        <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                             <div class="helpfulness-badge ${helpfulnessColor}">
                                 ${helpfulnessText}
                             </div>
                             ${attributionBadge}
+                            ${emotionBadge}
                         </div>
                     </div>
                     ${comment.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">⏱️ ${comment.timestamp}</div>` : ''}
@@ -278,8 +326,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         </p>
                     </div>
                     
+                    ${emotionAnalysisHtml}
+
                     ${attributionAnalysisHtml}
-                    
+
                     ${comment.patterns.length > 0 ? `
                         <div style="margin-bottom: 16px;">
                             <h4 style="margin: 0 0 8px 0; color: #374151;">Psychological Patterns:</h4>
@@ -316,11 +366,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function displaySummaryView(analysisData) {
         const summary = analysisData.analysis_summary;
+        const emotionalSummary = summary.emotional_summary || {};
         const resultDiv = document.getElementById('analysisResult');
+
+        // Build emotional summary section if available
+        const emotionalSummaryHtml = emotionalSummary.dominantEmotion ? `
+            <div style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #818CF8;">
+                <h4 style="color: #4F46E5; margin-bottom: 16px;">🧠 Emotional Profile</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">DOMINANT EMOTION</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; text-transform: capitalize; color: #4F46E5;">${emotionalSummary.dominantEmotion}</div>
+                    </div>
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">PEAK ZONE %</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${emotionalSummary.peakZonePercentage >= 50 ? '#10B981' : emotionalSummary.peakZonePercentage >= 25 ? '#F59E0B' : '#EF4444'};">${emotionalSummary.peakZonePercentage}%</div>
+                    </div>
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">AVG ENERGY</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #374151;">${emotionalSummary.averageArousal || 'N/A'}/10</div>
+                    </div>
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">DANGER MOMENTS</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${emotionalSummary.dangerMoments > 3 ? '#EF4444' : emotionalSummary.dangerMoments > 1 ? '#F59E0B' : '#10B981'};">${emotionalSummary.dangerMoments}</div>
+                    </div>
+                </div>
+                ${emotionalSummary.emotionDistribution ? `
+                    <div style="margin-top: 16px; background: white; padding: 12px; border-radius: 8px;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 8px;">EMOTION DISTRIBUTION</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${Object.entries(emotionalSummary.emotionDistribution).map(([emotion, count]) => `
+                                <span style="background: #4F46E520; color: #4F46E5; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600;">
+                                    ${emotion}: ${count}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                <div style="margin-top: 16px; text-align: center;">
+                    <a href="emotions.html" style="display: inline-flex; align-items: center; gap: 8px; background: #4F46E5; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                        📚 Learn About Your Emotions
+                    </a>
+                </div>
+            </div>
+        ` : '';
 
         resultDiv.innerHTML = `
             <h3>📊 Psychological Profile Summary</h3>
-            
+
+            ${emotionalSummaryHtml}
+
             <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h4>📈 Pattern Distribution</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">

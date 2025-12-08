@@ -10,6 +10,7 @@ require('dotenv').config();
 // Import services
 const transcriptionService = require('./server/services/transcription');
 const attributionService = require('./server/services/attribution');
+const emotionFramework = require('./server/services/emotionFramework');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -273,6 +274,77 @@ app.post('/api/score-reframe', async (req, res) => {
             success: false,
             error: error.message || 'Failed to score reframe',
             timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Emotion framework configuration endpoint
+app.get('/api/emotions', (req, res) => {
+    try {
+        const config = emotionFramework.getFrameworkConfig();
+        res.json({
+            success: true,
+            data: config
+        });
+    } catch (error) {
+        console.error('Emotion framework endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to get emotion framework'
+        });
+    }
+});
+
+// Emotion detection endpoint
+app.post('/api/detect-emotions', (req, res) => {
+    try {
+        const { text, language } = req.body;
+
+        if (!text) {
+            return res.status(400).json({
+                success: false,
+                error: 'No text provided for emotion detection.'
+            });
+        }
+
+        const result = emotionFramework.detectEmotions(text, language || 'es');
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Emotion detection endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to detect emotions'
+        });
+    }
+});
+
+// Emotional trajectory analysis endpoint
+app.post('/api/analyze-emotional-trajectory', (req, res) => {
+    try {
+        const { statements, language } = req.body;
+
+        if (!statements || !Array.isArray(statements)) {
+            return res.status(400).json({
+                success: false,
+                error: 'No statements array provided for trajectory analysis.'
+            });
+        }
+
+        const result = emotionFramework.analyzeEmotionalTrajectory(statements, language || 'es');
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Emotional trajectory endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to analyze emotional trajectory'
         });
     }
 });
