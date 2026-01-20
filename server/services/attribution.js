@@ -6,32 +6,175 @@ const emotionFramework = require('./emotionFramework');
 
 class AttributionService {
     constructor() {
+        // Configure timeout (default 60s, configurable via env)
+        const timeout = parseInt(process.env.CLAUDE_API_TIMEOUT) || 60000; // 60 seconds default
+        
         this.anthropic = new Anthropic({
             apiKey: process.env.CLAUDE_API_KEY,
+            timeoutMs: timeout,
         });
         this.tennisLanguage = tennisLanguageProcessor;
         this.reframes = authenticReframes;
         this.patterns = psychologyPatterns;
+        this.defaultModel = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5-20250929';
+        this.maxTokensPerRequest = 8000; // Increased from 4000 to prevent truncation
+        this.chunkSize = 4000; // Reduced from 8000 to ensure responses fit within token limits
     }
 
     /**
-     * Analyze transcription for attribution patterns using Claude API
+     * Attempt to repair truncated JSON
      */
-    async analyzeAttributions(transcription) {
+    repairJson(jsonString) {
         try {
-            console.log('Starting attribution analysis...');
-
-            if (!process.env.CLAUDE_API_KEY) {
-                throw new Error('CLAUDE_API_KEY not configured');
+            // If valid, return parsed
+            return JSON.parse(jsonString);
+        } catch (e) {
+            console.log('Attempting to repair JSON...');
+            let repaired = jsonString.trim();
+            
+            // Remove any trailing commas before closing braces/brackets
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+            
+            // Remove any comments or invalid characters that might cause issues
+            // (though JSON shouldn't have comments, Claude sometimes adds them)
+            repaired = repaired.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove /* comments */
+            repaired = repaired.replace(/\/\/.*$/gm, ''); // Remove // comments
+            
+            // Try parsing again after basic cleanup
+            try {
+                return JSON.parse(repaired);
+            } catch (e2) {
+                // If still fails, try structural repair
             }
-
-            if (!transcription || transcription.trim().length === 0) {
-                throw new Error('No transcription provided for analysis');
+            
+            // Find the last valid closing structure
+            const lastObjectEnd = repaired.lastIndexOf('}');
+            const lastArrayEnd = repaired.lastIndexOf(']');
+            
+            // If we have a segments array that was cut off
+            if (repaired.includes('"segments"')) {
+                // Count open/close braces to see what's unclosed
+                let openBraces = (repaired.match(/\{/g) || []).length;
+                let closeBraces = (repaired.match(/\}/g) || []).length;
+                let openBrackets = (repaired.match(/\[/g) || []).length;
+                let closeBrackets = (repaired.match(/\]/g) || []).length;
+                
+                // Remove trailing comma if present
+                repaired = repaired.replace(/,(\s*)$/, '');
+                
+                // Close unclosed structures
+                // If inside an object in the array (unclosed object)
+                if (openBraces > closeBraces) {
+                    // Close the current object(s)
+                    for (let i = 0; i < openBraces - closeBraces; i++) {
+                        repaired += '}';
+                    }
+                }
+                
+                // Close unclosed arrays
+                if (openBrackets > closeBrackets) {
+                    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+                        repaired += ']';
+                    }
+                }
+                
+                // Ensure main object is closed
+                if (!repaired.endsWith('}')) {
+                    // Count again after adding closing brackets
+                    openBraces = (repaired.match(/\{/g) || []).length;
+                    closeBraces = (repaired.match(/\}/g) || []).length;
+                    if (openBraces > closeBraces) {
+                        repaired += '}';
+                    }
+                }
+                
+                try {
+                    const parsed = JSON.parse(repaired);
+                    console.log('JSON repaired successfully');
+                    return parsed;
+                } catch (repairError) {
+                    console.error('Failed to repair JSON after structural fixes');
+                    console.error('Error at position:', repairError.message);
+                    // Try to find where the error is
+                    const match = repairError.message.match(/position (\d+)/);
+                    if (match) {
+                        const pos = parseInt(match[1]);
+                        const start = Math.max(0, pos - 50);
+                        const end = Math.min(repaired.length, pos + 50);
+                        console.error('Context around error:', repaired.substring(start, end));
+                    }
+                    throw new Error(`JSON repair failed: ${repairError.message}. Original error: ${e.message}`);
+                }
             }
+            
+            // If no segments found, try basic repair
+            try {
+                // Remove trailing comma
+                repaired = repaired.replace(/,(\s*)$/, '');
+                // Ensure it ends with }
+                if (!repaired.endsWith('}')) {
+                    const openCount = (repaired.match(/\{/g) || []).length;
+                    const closeCount = (repaired.match(/\}/g) || []).length;
+                    for (let i = 0; i < openCount - closeCount; i++) {
+                        repaired += '}';
+                    }
+                }
+                return JSON.parse(repaired);
+            } catch (finalError) {
+                throw new Error(`Could not repair JSON: ${finalError.message}. Original: ${e.message}`);
+            }
+        }
+    }
 
-            const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.
+    /**
+     * Estimate token count (rough approximation: 1 token ≈ 4 characters)
+     */
+    estimateTokenCount(text) {
+        return Math.ceil(text.length / 4);
+    }
 
-TRANSCRIPTION: "${transcription}"
+    /**
+     * Split transcription into chunks if it's too long
+     */
+    chunkTranscription(transcription) {
+        if (transcription.length <= this.chunkSize) {
+            return [transcription];
+        }
+
+        const chunks = [];
+        let currentChunk = '';
+        const sentences = transcription.split(/[.!?]\s+/);
+
+        for (const sentence of sentences) {
+            if ((currentChunk + sentence).length > this.chunkSize && currentChunk.length > 0) {
+                chunks.push(currentChunk.trim());
+                currentChunk = sentence;
+            } else {
+                currentChunk += (currentChunk ? '. ' : '') + sentence;
+            }
+        }
+
+        if (currentChunk.trim().length > 0) {
+            chunks.push(currentChunk.trim());
+        }
+
+        return chunks;
+    }
+
+    /**
+     * Analyze a single chunk of transcription
+     */
+    async analyzeChunk(chunk, chunkIndex, totalChunks) {
+        const isPartial = totalChunks > 1;
+        const chunkContext = isPartial 
+            ? `\n\nNOTE: This is chunk ${chunkIndex + 1} of ${totalChunks}. Analyze this segment independently.`
+            : '';
+
+        const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.${chunkContext}
+
+TRANSCRIPTION: "${chunk}"
+
+IMPORTANT: Respond with ONLY valid JSON. Do not include markdown code blocks, explanations, or any text outside the JSON object. Start your response with { and end with }.
 
 For each distinct quote/comment, provide a JSON response with this structure:
 
@@ -39,7 +182,7 @@ For each distinct quote/comment, provide a JSON response with this structure:
   "segments": [
     {
       "segment_id": number,
-      "quote": "exact quote from transcription",
+      "quote": "exact quote",
       "timestamp": "time if available",
       "situation": "brief context",
       "helpfulness_score": number (1-10),
@@ -47,20 +190,20 @@ For each distinct quote/comment, provide a JSON response with this structure:
         {
           "type": "pattern_type",
           "helpfulness_score": number (1-10),
-          "explanation": "brief explanation",
+          "explanation": "concise explanation (max 15 words)",
           "intensity": "low/medium/high"
         }
       ],
       "attribution_analysis": {
         "has_attribution": boolean,
-        "attribution_statement": "the causal explanation if present",
+        "attribution_statement": "causal explanation if present",
         "dimensions": {
           "locus": "internal/external/mixed",
           "stability": "stable/unstable/mixed", 
           "controllability": "controllable/uncontrollable/mixed"
         },
         "attribution_quality_score": number (1-10, only if has_attribution is true),
-        "attribution_explanation": "why this attribution helps/hurts performance"
+        "attribution_explanation": "concise impact (max 15 words)"
       },
       "focus_direction": "forward/backward/present"
     }
@@ -90,30 +233,31 @@ For each distinct quote/comment, provide a JSON response with this structure:
 SCORING CRITERIA:
 
 HELPFULNESS SCORE (1-10):
-- 8-10: Builds confidence, motivates, solution-focused, forward-looking
-- 5-7: Neutral impact, mixed helpful/unhelpful elements
-- 1-4: Undermines confidence, dwelling on past, harsh self-criticism
+- 8-10: Builds confidence, motivates, solution-focused
+- 5-7: Neutral impact, mixed elements
+- 1-4: Undermines confidence, harsh self-criticism
 
 ATTRIBUTION QUALITY SCORE (1-10, only when causal explanations present):
-- 8-10: Internal-Controllable attributions that empower improvement ("I need to adjust my grip")
+- 8-10: Internal-Controllable attributions that empower
 - 5-7: Mixed or partially helpful attributions 
-- 1-4: External-Uncontrollable attributions that create helplessness ("The wind always ruins my shots")
+- 1-4: External-Uncontrollable attributions that create helplessness
 
 PSYCHOLOGICAL PATTERN TYPES:
-- positive_reinforcement: Self-praise, confidence building
-- self_criticism: Harsh self-judgment, negative evaluation
-- tactical_focus: Technical analysis, strategic thinking
-- emotional_regulation: Managing frustration, staying calm
-- forward_focus: Looking ahead, next point mentality
-- backward_focus: Dwelling on past mistakes
-- energy_management: Motivational self-talk
-- pattern_recognition: Learning from experience
+- positive_reinforcement: Self-praise
+- self_criticism: Negative evaluation
+- tactical_focus: Strategy
+- emotional_regulation: Managing frustration
+- forward_focus: Next point mentality
+- backward_focus: Dwelling on past
+- energy_management: Motivational
+- pattern_recognition: Learning
 
-Focus on realistic, observable patterns. Be specific about what makes each comment helpful or unhelpful for tennis performance.`;
+Focus on realistic, observable patterns. Keep explanations concise to save space.`;
 
+        try {
             const response = await this.anthropic.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 4000,
+                model: this.defaultModel,
+                max_tokens: this.maxTokensPerRequest,
                 temperature: 0.3,
                 messages: [
                     {
@@ -123,32 +267,217 @@ Focus on realistic, observable patterns. Be specific about what makes each comme
                 ]
             });
 
-            console.log('Claude API response received');
-
-            // Extract the response content
             const responseText = response.content[0].text;
+            
+            // Log response length for debugging
+            console.log(`Claude response length: ${responseText.length} characters`);
 
-            // Try to parse the JSON response
-            let analysisResult;
-            try {
-                // Look for JSON in the response
-                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    analysisResult = JSON.parse(jsonMatch[0]);
-                } else {
-                    throw new Error('No JSON found in response');
-                }
-            } catch (parseError) {
-                console.error('Error parsing Claude response:', parseError);
-                console.log('Raw response:', responseText);
-
-                // Return a structured error response
-                return {
-                    attributions: [],
-                    error: 'Failed to parse attribution analysis',
-                    raw_response: responseText
-                };
+            // Extract JSON from response - handle markdown code blocks and other formatting
+            let jsonString = responseText.trim();
+            
+            // Remove markdown code blocks if present
+            jsonString = jsonString.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+            jsonString = jsonString.replace(/\s*```$/i, '');
+            
+            // Log first 200 chars to see what we're working with
+            if (jsonString.length > 200) {
+                console.log('JSON string preview:', jsonString.substring(0, 200) + '...');
+            } else {
+                console.log('JSON string:', jsonString);
             }
+            
+            // Try to find JSON object in the response
+            let jsonMatch = jsonString.match(/\{[\s\S]*\}/);
+            
+            // If no match, try to find JSON that might be embedded in text
+            if (!jsonMatch) {
+                // Look for JSON starting with { and try to extract it
+                const startIdx = jsonString.indexOf('{');
+                if (startIdx !== -1) {
+                    // Try to find the matching closing brace
+                    let braceCount = 0;
+                    let endIdx = startIdx;
+                    for (let i = startIdx; i < jsonString.length; i++) {
+                        if (jsonString[i] === '{') braceCount++;
+                        if (jsonString[i] === '}') braceCount--;
+                        if (braceCount === 0) {
+                            endIdx = i;
+                            break;
+                        }
+                    }
+                    if (endIdx > startIdx) {
+                        jsonMatch = [jsonString.substring(startIdx, endIdx + 1)];
+                    }
+                }
+            }
+            
+            if (jsonMatch) {
+                // Try to parse, using repair logic if needed
+                try {
+                    return JSON.parse(jsonMatch[0]);
+                } catch (parseError) {
+                    console.log('Initial JSON parse failed, attempting repair...');
+                    // If simple parse fails, try to repair (likely truncation or malformed)
+                    try {
+                        return this.repairJson(jsonMatch[0]);
+                    } catch (repairError) {
+                        console.error('JSON repair failed:', repairError.message);
+                        console.error('JSON snippet (first 500 chars):', jsonMatch[0].substring(0, 500));
+                        throw new Error(`Failed to parse JSON response: ${repairError.message}`);
+                    }
+                }
+            } else {
+                // Try to repair the raw text if regex failed to find a complete block
+                try {
+                    return this.repairJson(jsonString);
+                } catch (e) {
+                    console.error('No valid JSON found in response. Response preview:', responseText.substring(0, 500));
+                    throw new Error('No valid JSON found in Claude response. The response may be malformed.');
+                }
+            }
+        } catch (error) {
+            console.error(`Error analyzing chunk ${chunkIndex + 1}:`, error);
+            
+            // Handle timeout errors
+            if (error.message && error.message.includes('timeout')) {
+                throw new Error(`Request timeout while analyzing chunk ${chunkIndex + 1}. The transcription may be too long.`);
+            }
+            
+            throw error;
+        }
+    }
+
+    /**
+     * Merge multiple chunk analysis results into a single result
+     */
+    mergeChunkResults(chunkResults) {
+        if (chunkResults.length === 0) {
+            return {
+                segments: [],
+                analysis_summary: {
+                    total_segments: 0,
+                    pattern_distribution: {},
+                    helpful_thought_ratio: "0%",
+                    average_intensity: "medium",
+                    focus_direction_ratio: "0%",
+                    dominant_patterns: [],
+                    key_insights: []
+                }
+            };
+        }
+
+        if (chunkResults.length === 1) {
+            return chunkResults[0];
+        }
+
+        // Merge segments
+        let allSegments = [];
+        let segmentIdCounter = 1;
+        chunkResults.forEach((result, chunkIndex) => {
+            if (result.segments && Array.isArray(result.segments)) {
+                result.segments.forEach(segment => {
+                    allSegments.push({
+                        ...segment,
+                        segment_id: segmentIdCounter++
+                    });
+                });
+            }
+        });
+
+        // Merge pattern distributions
+        const mergedPatternDistribution = {};
+        const patternKeys = [
+            'positive_reinforcement', 'self_criticism', 'tactical_focus',
+            'emotional_regulation', 'forward_focus', 'backward_focus',
+            'energy_management', 'pattern_recognition'
+        ];
+
+        patternKeys.forEach(key => {
+            mergedPatternDistribution[key] = chunkResults.reduce((sum, result) => {
+                return sum + (result.analysis_summary?.pattern_distribution?.[key] || 0);
+            }, 0);
+        });
+
+        // Calculate merged summary metrics
+        const totalSegments = allSegments.length;
+        const helpfulSegments = allSegments.filter(s => s.helpfulness_score >= 7).length;
+        const helpfulRatio = totalSegments > 0 ? Math.round((helpfulSegments / totalSegments) * 100) : 0;
+        
+        const attributionSegments = allSegments.filter(s => s.attribution_analysis?.has_attribution);
+        const avgAttributionQuality = attributionSegments.length > 0
+            ? Math.round(attributionSegments.reduce((sum, s) => sum + (s.attribution_analysis.attribution_quality_score || 0), 0) / attributionSegments.length)
+            : 0;
+
+        // Collect all insights and dominant patterns
+        const allInsights = [];
+        const allDominantPatterns = [];
+        chunkResults.forEach(result => {
+            if (result.analysis_summary?.key_insights) {
+                allInsights.push(...result.analysis_summary.key_insights);
+            }
+            if (result.analysis_summary?.dominant_patterns) {
+                allDominantPatterns.push(...result.analysis_summary.dominant_patterns);
+            }
+        });
+
+        return {
+            segments: allSegments,
+            analysis_summary: {
+                total_segments: totalSegments,
+                helpful_thought_ratio: `${helpfulRatio}%`,
+                average_intensity: "medium", // Could be calculated from segments
+                focus_direction_ratio: `${Math.round((allSegments.filter(s => s.focus_direction === 'forward').length / totalSegments) * 100)}% forward`,
+                attribution_count: attributionSegments.length,
+                average_attribution_quality: avgAttributionQuality,
+                pattern_distribution: mergedPatternDistribution,
+                key_insights: [...new Set(allInsights)].slice(0, 5), // Unique insights, max 5
+                dominant_patterns: [...new Set(allDominantPatterns)].slice(0, 3) // Unique patterns, max 3
+            }
+        };
+    }
+
+    /**
+     * Analyze transcription for attribution patterns using Claude API
+     */
+    async analyzeAttributions(transcription) {
+        try {
+            console.log('Starting attribution analysis...');
+
+            if (!process.env.CLAUDE_API_KEY) {
+                throw new Error('CLAUDE_API_KEY not configured');
+            }
+
+            if (!transcription || transcription.trim().length === 0) {
+                throw new Error('No transcription provided for analysis');
+            }
+
+            // Check if transcription needs chunking
+            const chunks = this.chunkTranscription(transcription);
+            console.log(`Processing ${chunks.length} chunk(s) for analysis (transcription length: ${transcription.length} characters)`);
+
+            if (chunks.length > 1) {
+                console.log('Transcription is long, processing in chunks to prevent timeouts...');
+            }
+
+            // Process chunks sequentially to avoid overwhelming the API
+            const chunkResults = [];
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Processing chunk ${i + 1}/${chunks.length}...`);
+                try {
+                    const chunkResult = await this.analyzeChunk(chunks[i], i, chunks.length);
+                    chunkResults.push(chunkResult);
+                } catch (chunkError) {
+                    console.error(`Failed to process chunk ${i + 1}:`, chunkError);
+                    // Continue with other chunks even if one fails
+                    if (chunkResults.length === 0) {
+                        throw chunkError; // Only throw if all chunks fail
+                    }
+                }
+            }
+
+            // Merge results from all chunks
+            const analysisResult = this.mergeChunkResults(chunkResults);
+            console.log('Claude API response received and merged');
 
             // Validate the response structure
             if (!analysisResult.segments || !Array.isArray(analysisResult.segments)) {
@@ -195,6 +524,8 @@ Focus on realistic, observable patterns. Be specific about what makes each comme
                 throw new Error('Claude API rate limit exceeded');
             } else if (error.status === 500) {
                 throw new Error('Claude API server error');
+            } else if (error.message && error.message.includes('timeout')) {
+                throw new Error('Request timeout. The transcription may be too long. Try breaking it into smaller segments.');
             }
 
             // Re-throw the error for generic handling
@@ -297,7 +628,7 @@ ATTRIBUTION QUALITY SCORE (1-10, only when causal explanations present):
 Focus on practical tennis psychology - what will actually help performance on court. Be specific about attribution dimensions and their impact.`;
 
             const response = await this.anthropic.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
+                model: this.defaultModel,
                 max_tokens: 1000,
                 temperature: 0.3,
                 messages: [
@@ -348,6 +679,20 @@ Focus on practical tennis psychology - what will actually help performance on co
 
         } catch (error) {
             console.error('Reframe scoring error:', error);
+
+            // Handle timeout errors specifically
+            if (error.message && error.message.includes('timeout')) {
+                return {
+                    helpfulness_score: 5,
+                    attribution_analysis: {
+                        has_attribution: false,
+                        attribution_quality_score: null
+                    },
+                    feedback: 'Request timeout. Please try again with a shorter reframe.',
+                    improvements: ['Keep your reframe concise', 'Focus on one key improvement'],
+                    overall_score: 5
+                };
+            }
 
             // Return a default response if API fails
             return {

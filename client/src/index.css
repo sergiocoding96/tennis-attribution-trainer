@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  html {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Dark mode (default) */
+  body {
+    @apply bg-dark-bg text-dark-text;
+  }
+
+  /* Light mode */
+  body.light {
+    @apply bg-light-bg text-light-text;
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Cards */
+  .card {
+    @apply rounded-xl transition-all duration-200;
+  }
+  
+  .card-dark {
+    @apply bg-dark-card border border-dark-border shadow-glass-dark;
+  }
+  
+  .card-light {
+    @apply bg-light-card border border-light-border shadow-card;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-dark {
+    @apply bg-dark-card/80 border border-white/10;
+  }
+
+  .glass-light {
+    @apply bg-white/80 border border-black/5;
+  }
+
+  /* Score badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold;
+  }
+
+  .badge-positive {
+    @apply bg-score-positive/20 text-score-positive;
+  }
+
+  .badge-warning {
+    @apply bg-score-warning/20 text-score-warning;
+  }
+
+  .badge-negative {
+    @apply bg-score-negative/20 text-score-negative;
+  }
+
+  /* Buttons */
+  .btn-primary-dark {
+    @apply bg-accent-yellow text-dark-bg font-semibold px-4 py-2.5 rounded-lg 
+           hover:bg-accent-yellow/90 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-accent-yellow/50;
+  }
+
+  .btn-primary-light {
+    @apply bg-accent-green text-white font-semibold px-4 py-2.5 rounded-lg 
+           hover:bg-accent-green/90 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-accent-green/50;
+  }
+
+  .btn-secondary {
+    @apply font-medium px-4 py-2.5 rounded-lg transition-all duration-200
+           focus:outline-none focus:ring-2;
+  }
+
+  .btn-secondary-dark {
+    @apply bg-dark-border/50 text-dark-text hover:bg-dark-border;
+  }
+
+  .btn-secondary-light {
+    @apply bg-light-border text-light-text hover:bg-light-border/80;
+  }
+
+  /* Input fields */
+  .input-field {
+    @apply w-full rounded-lg px-4 py-3 transition-all duration-200
+           focus:outline-none focus:ring-2;
+  }
+
+  .input-dark {
+    @apply bg-dark-bg border border-dark-border text-dark-text
+           placeholder:text-dark-muted focus:ring-accent-yellow/50 focus:border-accent-yellow;
+  }
+
+  .input-light {
+    @apply bg-light-bg border border-light-border text-light-text
+           placeholder:text-light-muted focus:ring-accent-green/50 focus:border-accent-green;
+  }
+
+  /* Tab styles */
+  .tab {
+    @apply px-4 py-2.5 text-sm font-medium transition-all duration-200 relative;
+  }
+
+  .tab-active-dark {
+    @apply text-accent-yellow;
+  }
+
+  .tab-active-dark::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-accent-yellow;
+  }
+
+  .tab-active-light {
+    @apply text-accent-green;
+  }
+
+  .tab-active-light::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-accent-green;
+  }
+
+  .tab-inactive-dark {
+    @apply text-dark-muted hover:text-dark-text;
+  }
+
+  .tab-inactive-light {
+    @apply text-light-muted hover:text-light-text;
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb {
+    @apply bg-dark-border rounded-full;
+  }
+
+  .scrollbar-light::-webkit-scrollbar-thumb {
+    @apply bg-light-border rounded-full;
+  }
+
+  /* Text gradient */
+  .text-gradient-dark {
+    @apply bg-gradient-to-r from-accent-yellow to-score-positive bg-clip-text text-transparent;
+  }
+
+  .text-gradient-light {
+    @apply bg-gradient-to-r from-accent-green to-score-positive bg-clip-text text-transparent;
+  }
+
+  /* Hover card effect */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-1;
+  }
+}
+
+/* Pattern background for empty states */
+.pattern-bg-dark {
+  background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.1) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.pattern-bg-light {
+  background-image: radial-gradient(circle at 1px 1px, rgba(100, 116, 139, 0.1) 1px, transparent 0);
+  background-size: 24px 24px;
+}
