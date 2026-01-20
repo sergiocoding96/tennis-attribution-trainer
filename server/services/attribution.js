@@ -2,6 +2,7 @@ const { Anthropic } = require('@anthropic-ai/sdk');
 const tennisLanguageProcessor = require('./tennisLanguageProcessor');
 const authenticReframes = require('./authenticReframes');
 const psychologyPatterns = require('./psychologyPatterns');
+const emotionFramework = require('./emotionFramework');
 
 class AttributionService {
     constructor() {
@@ -202,11 +203,36 @@ Focus on realistic, observable patterns. Be specific about what makes each comme
     }
 
     /**
- * Process transcription and return attribution analysis
+ * Process transcription and return attribution analysis with emotion detection
  */
     async processTranscription(transcription) {
         try {
             const result = await this.analyzeAttributions(transcription);
+
+            // Add emotion detection to each segment
+            if (result.segments && Array.isArray(result.segments)) {
+                result.segments = result.segments.map(segment => {
+                    const emotionAnalysis = emotionFramework.detectEmotions(segment.quote, 'es');
+                    return {
+                        ...segment,
+                        emotion_analysis: {
+                            detected_emotions: emotionAnalysis.detected,
+                            primary_emotion: emotionAnalysis.primaryEmotion,
+                            is_in_peak_zone: emotionAnalysis.isInPeakZone,
+                            recommended_action: emotionAnalysis.recommendedAction
+                        }
+                    };
+                });
+
+                // Add emotional trajectory to summary
+                const statements = result.segments.map(s => ({ text: s.quote }));
+                const trajectoryAnalysis = emotionFramework.analyzeEmotionalTrajectory(statements, 'es');
+
+                result.analysis_summary = {
+                    ...result.analysis_summary,
+                    emotional_summary: trajectoryAnalysis.summary
+                };
+            }
 
             return {
                 success: true,
