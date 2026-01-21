@@ -5,7 +5,8 @@ import TranscriptionUpload from './components/TranscriptionUpload'
 import AnalysisDisplay from './components/AnalysisDisplay'
 import SessionHistory from './components/SessionHistory'
 import Auth from './components/Auth'
-import { Activity, Sun, Moon, Loader2, FileAudio, User, LogOut } from 'lucide-react'
+import EmotionsFramework from './components/EmotionsFramework'
+import { Activity, Sun, Moon, Loader2, FileAudio, User, LogOut, Brain } from 'lucide-react'
 
 function App() {
   const { toggleTheme, isDark } = useTheme()
@@ -14,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
+  const [showEmotions, setShowEmotions] = useState(false)
 
   const handleSelectSession = (data) => {
     setAnalysisData(data)
@@ -26,6 +28,9 @@ function App() {
     }`}>
       {/* Auth Modal */}
       {showAuth && <Auth onClose={() => setShowAuth(false)} />}
+      
+      {/* Emotions Framework Modal */}
+      {showEmotions && <EmotionsFramework onClose={() => setShowEmotions(false)} />}
 
       {/* Header */}
       <header className={`sticky top-0 z-40 backdrop-blur-lg border-b transition-colors duration-300 ${
@@ -60,6 +65,20 @@ function App() {
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-2">
+              {/* Emotions Framework Button */}
+              <button
+                onClick={() => setShowEmotions(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                  isDark 
+                    ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' 
+                    : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                }`}
+                title="Learn about emotions in tennis"
+              >
+                <Brain className="w-4 h-4" />
+                <span className="hidden md:inline">Emotions</span>
+              </button>
+
               {/* Auth Button */}
               {isConfigured && (
                 isAuthenticated ? (
@@ -177,7 +196,10 @@ function App() {
                 }`}>{error}</p>
               </div>
             ) : analysisData ? (
-              <AnalysisDisplay data={analysisData} />
+              <AnalysisDisplay 
+                data={analysisData} 
+                onOpenEmotions={() => setShowEmotions(true)}
+              />
             ) : (
               <div className={`card flex flex-col items-center justify-center h-80 border-2 border-dashed ${
                 isDark 

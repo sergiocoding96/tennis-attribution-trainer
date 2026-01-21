@@ -3,10 +3,11 @@ import { useTheme } from '../context/ThemeContext'
 import CommentCard from './CommentCard'
 import { BarChart2, MessageSquare, Target, Brain, TrendingUp, Lightbulb, ArrowRight } from 'lucide-react'
 
-export default function AnalysisDisplay({ data }) {
+export default function AnalysisDisplay({ data, onOpenEmotions }) {
   const { isDark } = useTheme()
   const [viewMode, setViewMode] = useState('comments')
   const { segments, analysis_summary } = data
+  const emotionalSummary = analysis_summary?.emotional_summary
 
   // Calculate max pattern count for bar scaling
   const patternCounts = Object.values(analysis_summary?.pattern_distribution || {})
@@ -153,6 +154,136 @@ export default function AnalysisDisplay({ data }) {
               </p>
             </div>
           </div>
+
+          {/* Emotional Profile */}
+          {emotionalSummary?.dominantEmotion && (
+            <div className={`card p-6 bg-gradient-to-br ${
+              isDark 
+                ? 'from-purple-900/30 to-indigo-900/30 border border-purple-500/30' 
+                : 'from-purple-50 to-indigo-50 border border-purple-200'
+            }`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Brain className={`w-5 h-5 ${
+                    isDark ? 'text-purple-400' : 'text-purple-600'
+                  }`} />
+                  <h3 className={`font-semibold ${
+                    isDark ? 'text-dark-text' : 'text-light-text'
+                  }`}>
+                    Emotional Profile
+                  </h3>
+                </div>
+                {onOpenEmotions && (
+                  <button
+                    onClick={onOpenEmotions}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      isDark 
+                        ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' 
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    }`}
+                  >
+                    📚 Learn About Emotions
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`p-4 rounded-xl text-center ${
+                  isDark ? 'bg-dark-bg/50' : 'bg-white/70'
+                }`}>
+                  <div className={`text-xs uppercase mb-1 ${
+                    isDark ? 'text-dark-muted' : 'text-light-muted'
+                  }`}>
+                    Dominant Emotion
+                  </div>
+                  <div className={`text-lg font-bold capitalize ${
+                    isDark ? 'text-dark-text' : 'text-light-text'
+                  }`}>
+                    {emotionalSummary.dominantEmotion}
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl text-center ${
+                  isDark ? 'bg-dark-bg/50' : 'bg-white/70'
+                }`}>
+                  <div className={`text-xs uppercase mb-1 ${
+                    isDark ? 'text-dark-muted' : 'text-light-muted'
+                  }`}>
+                    Peak Zone %
+                  </div>
+                  <div className={`text-lg font-bold ${
+                    emotionalSummary.peakZonePercentage >= 50 
+                      ? 'text-score-positive' 
+                      : emotionalSummary.peakZonePercentage >= 25 
+                        ? 'text-score-warning' 
+                        : 'text-score-negative'
+                  }`}>
+                    {emotionalSummary.peakZonePercentage}%
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl text-center ${
+                  isDark ? 'bg-dark-bg/50' : 'bg-white/70'
+                }`}>
+                  <div className={`text-xs uppercase mb-1 ${
+                    isDark ? 'text-dark-muted' : 'text-light-muted'
+                  }`}>
+                    Avg Energy
+                  </div>
+                  <div className={`text-lg font-bold ${
+                    isDark ? 'text-dark-text' : 'text-light-text'
+                  }`}>
+                    {emotionalSummary.averageArousal || 'N/A'}/10
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-xl text-center ${
+                  isDark ? 'bg-dark-bg/50' : 'bg-white/70'
+                }`}>
+                  <div className={`text-xs uppercase mb-1 ${
+                    isDark ? 'text-dark-muted' : 'text-light-muted'
+                  }`}>
+                    Danger Moments
+                  </div>
+                  <div className={`text-lg font-bold ${
+                    emotionalSummary.dangerMoments > 3 
+                      ? 'text-score-negative' 
+                      : emotionalSummary.dangerMoments > 1 
+                        ? 'text-score-warning' 
+                        : 'text-score-positive'
+                  }`}>
+                    {emotionalSummary.dangerMoments}
+                  </div>
+                </div>
+              </div>
+
+              {emotionalSummary.emotionDistribution && (
+                <div className={`mt-4 p-3 rounded-xl ${
+                  isDark ? 'bg-dark-bg/50' : 'bg-white/70'
+                }`}>
+                  <div className={`text-xs uppercase mb-2 ${
+                    isDark ? 'text-dark-muted' : 'text-light-muted'
+                  }`}>
+                    Emotion Distribution
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(emotionalSummary.emotionDistribution).map(([emotion, count]) => (
+                      <span
+                        key={emotion}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          isDark 
+                            ? 'bg-purple-500/20 text-purple-300' 
+                            : 'bg-purple-100 text-purple-700'
+                        }`}
+                      >
+                        {emotion}: {count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Key Insights */}
           {analysis_summary?.key_insights?.length > 0 && (
