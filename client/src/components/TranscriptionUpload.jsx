@@ -59,6 +59,7 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
     formData.append('audio', file)
     formData.append('language', 'es')
 
+    try {
       const transResponse = await axios.post('/api/transcribe', formData)
       
       if (transResponse.data.success) {
