@@ -243,7 +243,37 @@ class EmotionFramework {
      * @param {string} language - 'es' or 'en'
      * @returns {Object} Detected emotions with confidence scores
      */
-    detectEmotions(text, language = 'es') {
+    /**
+     * Simple language detection based on common words
+     */
+    detectLanguage(text) {
+        const lowerText = text.toLowerCase();
+        const spanishIndicators = ['el', 'la', 'los', 'las', 'que', 'de', 'en', 'es', 'no', 'si', 'por', 'para', 'pero', 'como', 'mas', 'muy', 'tengo', 'estoy', 'vamos'];
+        const englishIndicators = ['the', 'is', 'are', 'was', 'were', 'have', 'has', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'my', 'your', 'this', 'that', 'with'];
+
+        let spanishCount = 0;
+        let englishCount = 0;
+
+        for (const word of spanishIndicators) {
+            if (lowerText.includes(` ${word} `) || lowerText.startsWith(`${word} `) || lowerText.endsWith(` ${word}`)) {
+                spanishCount++;
+            }
+        }
+
+        for (const word of englishIndicators) {
+            if (lowerText.includes(` ${word} `) || lowerText.startsWith(`${word} `) || lowerText.endsWith(` ${word}`)) {
+                englishCount++;
+            }
+        }
+
+        return spanishCount > englishCount ? 'es' : 'en';
+    }
+
+    detectEmotions(text, language = 'auto') {
+        // Auto-detect language if not specified
+        if (language === 'auto') {
+            language = this.detectLanguage(text);
+        }
         const lowerText = text.toLowerCase();
         const detectedEmotions = [];
 
@@ -330,7 +360,7 @@ class EmotionFramework {
     /**
      * Analyze emotional trajectory across multiple statements
      */
-    analyzeEmotionalTrajectory(statements, language = 'es') {
+    analyzeEmotionalTrajectory(statements, language = 'auto') {
         const trajectory = statements.map((statement, index) => {
             const analysis = this.detectEmotions(statement.text || statement, language);
             return {

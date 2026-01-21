@@ -22,7 +22,7 @@ class AttributionService {
     }
 
     /**
-     * Attempt to repair truncated JSON
+     * Attempt to repair truncated or malformed JSON
      */
     repairJson(jsonString) {
         try {
@@ -31,63 +31,141 @@ class AttributionService {
         } catch (e) {
             console.log('Attempting to repair JSON...');
             let repaired = jsonString.trim();
-            
-            // Remove any trailing commas before closing braces/brackets
-            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
-            
-            // Remove any comments or invalid characters that might cause issues
-            // (though JSON shouldn't have comments, Claude sometimes adds them)
+
+            // Step 1: Remove any comments (Claude sometimes adds them)
             repaired = repaired.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove /* comments */
             repaired = repaired.replace(/\/\/.*$/gm, ''); // Remove // comments
-            
+
+            // Step 2: Fix missing commas between array elements (common issue)
+            // Pattern: }{ or }whitespace{ without comma between them
+            repaired = repaired.replace(/\}(\s*)\{/g, '},$1{');
+            // Pattern: ][ or ]whitespace[ without comma
+            repaired = repaired.replace(/\](\s*)\[/g, '],$1[');
+            // Pattern: ]{ without comma (array close followed by object open)
+            repaired = repaired.replace(/\](\s*)\{/g, '],$1{');
+            // Pattern: }[ without comma (object close followed by array open)
+            repaired = repaired.replace(/\}(\s*)\[/g, '},$1[');
+            // Pattern: "value"{ without comma (string followed by object)
+            repaired = repaired.replace(/"(\s*)\{/g, '",$1{');
+            // Pattern: }"text" without comma (object followed by string)
+            repaired = repaired.replace(/\}(\s*)"/g, '},$1"');
+            // Pattern: ]" without comma (array close followed by string)
+            repaired = repaired.replace(/\](\s*)"/g, '],$1"');
+            // Pattern: "[ without comma (string followed by array)
+            repaired = repaired.replace(/"(\s*)\[/g, '",$1[');
+            // Pattern: number followed by { without comma
+            repaired = repaired.replace(/(\d)(\s*)\{/g, '$1,$2{');
+            // Pattern: number followed by [ without comma
+            repaired = repaired.replace(/(\d)(\s*)\[/g, '$1,$2[');
+            // Pattern: number followed by " without comma (but not inside a string)
+            repaired = repaired.replace(/(\d)(\s*)"/g, '$1,$2"');
+            // Pattern: true/false/null followed by { without comma
+            repaired = repaired.replace(/(true|false|null)(\s*)\{/g, '$1,$2{');
+            // Pattern: true/false/null followed by [ without comma
+            repaired = repaired.replace(/(true|false|null)(\s*)\[/g, '$1,$2[');
+            // Pattern: true/false/null followed by " without comma
+            repaired = repaired.replace(/(true|false|null)(\s*)"/g, '$1,$2"');
+
+            // Step 3: Remove any trailing commas before closing braces/brackets
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
             // Try parsing again after basic cleanup
             try {
                 return JSON.parse(repaired);
             } catch (e2) {
-                // If still fails, try structural repair
+                // If still fails, continue with structural repair
             }
-            
-            // Find the last valid closing structure
-            const lastObjectEnd = repaired.lastIndexOf('}');
-            const lastArrayEnd = repaired.lastIndexOf(']');
-            
-            // If we have a segments array that was cut off
+
+            // Step 4: Try to fix incomplete/broken strings
+            // Find strings that might be cut off (no closing quote before end or before next key)
+            // This is a heuristic approach
+            let inString = false;
+            let escaped = false;
+            let lastStringStart = -1;
+            let chars = repaired.split('');
+
+            for (let i = 0; i < chars.length; i++) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (chars[i] === '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (chars[i] === '"') {
+                    if (inString) {
+                        inString = false;
+                    } else {
+                        inString = true;
+                        lastStringStart = i;
+                    }
+                }
+            }
+
+            // If we ended inside a string, close it
+            if (inString && lastStringStart >= 0) {
+                console.log('Found unclosed string, attempting to close it');
+                repaired += '"';
+            }
+
+            // Step 5: Handle truncated segments array
             if (repaired.includes('"segments"')) {
                 // Count open/close braces to see what's unclosed
                 let openBraces = (repaired.match(/\{/g) || []).length;
                 let closeBraces = (repaired.match(/\}/g) || []).length;
                 let openBrackets = (repaired.match(/\[/g) || []).length;
                 let closeBrackets = (repaired.match(/\]/g) || []).length;
-                
+
                 // Remove trailing comma if present
                 repaired = repaired.replace(/,(\s*)$/, '');
-                
+
+                // If we're missing closing structures, try to find the last complete segment
+                // and truncate there
+                if (openBraces > closeBraces || openBrackets > closeBrackets) {
+                    // Look for the last complete segment object (ends with })
+                    // Find last occurrence of "}," or "}" followed by "]"
+                    const lastCompleteSegmentMatch = repaired.match(/.*(\},)\s*\{[^}]*$/s);
+                    if (lastCompleteSegmentMatch) {
+                        // Find the position of the last complete segment
+                        const lastGoodPos = repaired.lastIndexOf('},');
+                        if (lastGoodPos > 0) {
+                            console.log('Truncating to last complete segment');
+                            repaired = repaired.substring(0, lastGoodPos + 1);
+                            // Recalculate
+                            openBraces = (repaired.match(/\{/g) || []).length;
+                            closeBraces = (repaired.match(/\}/g) || []).length;
+                            openBrackets = (repaired.match(/\[/g) || []).length;
+                            closeBrackets = (repaired.match(/\]/g) || []).length;
+                        }
+                    }
+                }
+
                 // Close unclosed structures
-                // If inside an object in the array (unclosed object)
                 if (openBraces > closeBraces) {
-                    // Close the current object(s)
                     for (let i = 0; i < openBraces - closeBraces; i++) {
                         repaired += '}';
                     }
                 }
-                
-                // Close unclosed arrays
+
                 if (openBrackets > closeBrackets) {
                     for (let i = 0; i < openBrackets - closeBrackets; i++) {
                         repaired += ']';
                     }
                 }
-                
+
                 // Ensure main object is closed
                 if (!repaired.endsWith('}')) {
-                    // Count again after adding closing brackets
                     openBraces = (repaired.match(/\{/g) || []).length;
                     closeBraces = (repaired.match(/\}/g) || []).length;
                     if (openBraces > closeBraces) {
                         repaired += '}';
                     }
                 }
-                
+
+                // Final cleanup: remove any trailing commas again
+                repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+
                 try {
                     const parsed = JSON.parse(repaired);
                     console.log('JSON repaired successfully');
@@ -95,23 +173,61 @@ class AttributionService {
                 } catch (repairError) {
                     console.error('Failed to repair JSON after structural fixes');
                     console.error('Error at position:', repairError.message);
-                    // Try to find where the error is
+
+                    // Try to find where the error is and log context
                     const match = repairError.message.match(/position (\d+)/);
                     if (match) {
                         const pos = parseInt(match[1]);
-                        const start = Math.max(0, pos - 50);
-                        const end = Math.min(repaired.length, pos + 50);
+                        const start = Math.max(0, pos - 100);
+                        const end = Math.min(repaired.length, pos + 100);
                         console.error('Context around error:', repaired.substring(start, end));
+
+                        // Last resort: try to extract just the segments array up to the error
+                        try {
+                            const segmentsMatch = repaired.match(/"segments"\s*:\s*\[/);
+                            if (segmentsMatch && pos > segmentsMatch.index) {
+                                // Find segments that parsed successfully before the error
+                                const segmentsStart = repaired.indexOf('[', segmentsMatch.index);
+                                let truncated = repaired.substring(0, pos);
+                                // Find last complete object
+                                const lastComplete = truncated.lastIndexOf('},');
+                                if (lastComplete > segmentsStart) {
+                                    truncated = repaired.substring(0, lastComplete + 1);
+                                    // Close everything
+                                    const ob = (truncated.match(/\{/g) || []).length;
+                                    const cb = (truncated.match(/\}/g) || []).length;
+                                    const oB = (truncated.match(/\[/g) || []).length;
+                                    const cB = (truncated.match(/\]/g) || []).length;
+                                    for (let i = 0; i < ob - cb; i++) truncated += '}';
+                                    for (let i = 0; i < oB - cB; i++) truncated += ']';
+                                    truncated = truncated.replace(/,(\s*[}\]])/g, '$1');
+                                    const parsed = JSON.parse(truncated);
+                                    console.log('JSON repaired by truncating to last valid segment');
+                                    return parsed;
+                                }
+                            }
+                        } catch (truncError) {
+                            console.error('Truncation repair also failed');
+                        }
+
+                        // Ultimate fallback: iteratively find valid segments
+                        try {
+                            const result = this.extractValidSegments(repaired);
+                            if (result) {
+                                console.log('JSON repaired by extracting valid segments iteratively');
+                                return result;
+                            }
+                        } catch (extractError) {
+                            console.error('Segment extraction also failed:', extractError.message);
+                        }
                     }
                     throw new Error(`JSON repair failed: ${repairError.message}. Original error: ${e.message}`);
                 }
             }
-            
+
             // If no segments found, try basic repair
             try {
-                // Remove trailing comma
                 repaired = repaired.replace(/,(\s*)$/, '');
-                // Ensure it ends with }
                 if (!repaired.endsWith('}')) {
                     const openCount = (repaired.match(/\{/g) || []).length;
                     const closeCount = (repaired.match(/\}/g) || []).length;
@@ -124,6 +240,149 @@ class AttributionService {
                 throw new Error(`Could not repair JSON: ${finalError.message}. Original: ${e.message}`);
             }
         }
+    }
+
+    /**
+     * Extract valid segments from malformed JSON by parsing each segment individually
+     */
+    extractValidSegments(jsonString) {
+        console.log('Attempting to extract valid segments individually...');
+
+        // Find the segments array
+        const segmentsMatch = jsonString.match(/"segments"\s*:\s*\[/);
+        if (!segmentsMatch) {
+            return null;
+        }
+
+        const segmentsStart = jsonString.indexOf('[', segmentsMatch.index);
+        if (segmentsStart === -1) {
+            return null;
+        }
+
+        // Extract individual segment objects using brace matching
+        const validSegments = [];
+        let i = segmentsStart + 1;
+        let segmentCount = 0;
+
+        while (i < jsonString.length && segmentCount < 100) { // Safety limit
+            // Skip whitespace
+            while (i < jsonString.length && /\s/.test(jsonString[i])) i++;
+
+            // Check for end of array or next segment
+            if (jsonString[i] === ']') break;
+            if (jsonString[i] === ',') { i++; continue; }
+
+            // Expect start of object
+            if (jsonString[i] !== '{') {
+                i++;
+                continue;
+            }
+
+            // Find matching close brace for this segment
+            const segmentStart = i;
+            let braceCount = 0;
+            let inString = false;
+            let escaped = false;
+
+            for (; i < jsonString.length; i++) {
+                const char = jsonString[i];
+
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (char === '\\' && inString) {
+                    escaped = true;
+                    continue;
+                }
+
+                if (char === '"' && !escaped) {
+                    inString = !inString;
+                    continue;
+                }
+
+                if (!inString) {
+                    if (char === '{') braceCount++;
+                    if (char === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                            // Found complete segment
+                            const segmentStr = jsonString.substring(segmentStart, i + 1);
+                            try {
+                                const segment = JSON.parse(segmentStr);
+                                validSegments.push(segment);
+                                console.log(`Extracted segment ${validSegments.length}`);
+                            } catch (e) {
+                                console.log(`Skipping malformed segment at position ${segmentStart}`);
+                            }
+                            i++;
+                            segmentCount++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Safety check for infinite loop
+            if (braceCount !== 0) {
+                console.log(`Brace mismatch at position ${i}, stopping extraction`);
+                break;
+            }
+        }
+
+        if (validSegments.length === 0) {
+            return null;
+        }
+
+        console.log(`Successfully extracted ${validSegments.length} valid segments`);
+
+        // Try to extract analysis_summary if present
+        let analysisSummary = null;
+        const summaryMatch = jsonString.match(/"analysis_summary"\s*:\s*\{/);
+        if (summaryMatch) {
+            const summaryStart = jsonString.indexOf('{', summaryMatch.index);
+            let braceCount = 0;
+            let inString = false;
+            let escaped = false;
+            let j = summaryStart;
+
+            for (; j < jsonString.length; j++) {
+                const char = jsonString[j];
+                if (escaped) { escaped = false; continue; }
+                if (char === '\\' && inString) { escaped = true; continue; }
+                if (char === '"' && !escaped) { inString = !inString; continue; }
+                if (!inString) {
+                    if (char === '{') braceCount++;
+                    if (char === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                            const summaryStr = jsonString.substring(summaryStart, j + 1);
+                            try {
+                                analysisSummary = JSON.parse(summaryStr);
+                            } catch (e) {
+                                console.log('Could not parse analysis_summary, will generate default');
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build result object
+        return {
+            segments: validSegments,
+            analysis_summary: analysisSummary || {
+                total_segments: validSegments.length,
+                pattern_distribution: {},
+                helpful_thought_ratio: "0%",
+                average_intensity: "medium",
+                focus_direction_ratio: "0%",
+                dominant_patterns: [],
+                key_insights: ["Analysis partially recovered from malformed response"]
+            }
+        };
     }
 
     /**
@@ -170,7 +429,7 @@ class AttributionService {
             ? `\n\nNOTE: This is chunk ${chunkIndex + 1} of ${totalChunks}. Analyze this segment independently.`
             : '';
 
-        const prompt = `Analyze this Spanish tennis player transcription for psychological patterns and attributions. Provide segment-by-segment analysis.${chunkContext}
+        const prompt = `Analyze this tennis player transcription for psychological patterns and attributions. Auto-detect the language and provide segment-by-segment analysis.${chunkContext}
 
 TRANSCRIPTION: "${chunk}"
 
@@ -543,7 +802,7 @@ Focus on realistic, observable patterns. Keep explanations concise to save space
             // Add emotion detection to each segment
             if (result.segments && Array.isArray(result.segments)) {
                 result.segments = result.segments.map(segment => {
-                    const emotionAnalysis = emotionFramework.detectEmotions(segment.quote, 'es');
+                    const emotionAnalysis = emotionFramework.detectEmotions(segment.quote);
                     return {
                         ...segment,
                         emotion_analysis: {
@@ -557,7 +816,7 @@ Focus on realistic, observable patterns. Keep explanations concise to save space
 
                 // Add emotional trajectory to summary
                 const statements = result.segments.map(s => ({ text: s.quote }));
-                const trajectoryAnalysis = emotionFramework.analyzeEmotionalTrajectory(statements, 'es');
+                const trajectoryAnalysis = emotionFramework.analyzeEmotionalTrajectory(statements);
 
                 result.analysis_summary = {
                     ...result.analysis_summary,
@@ -588,7 +847,7 @@ Focus on realistic, observable patterns. Keep explanations concise to save space
         try {
             console.log('Starting reframe scoring...');
 
-            const prompt = `Score this reframe for a Spanish tennis player. Analyze both general helpfulness and attribution quality.
+            const prompt = `Score this reframe for a tennis player. Auto-detect the language. Analyze both general helpfulness and attribution quality.
 
 Original: "${originalQuote}"
 Player's reframe: "${playerReframe}"
