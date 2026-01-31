@@ -57,7 +57,7 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
 
     const formData = new FormData()
     formData.append('audio', file)
-    formData.append('language', 'es')
+    // Omit language so Whisper auto-detects (avoids wrong transcriptions when audio is English)
 
     try {
       const transResponse = await axios.post('/api/transcribe', formData)
