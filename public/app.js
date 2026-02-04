@@ -19,10 +19,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Validate file size (50MB limit)
-            const maxSize = 50 * 1024 * 1024;
+            // Validate file size (25MB limit - OpenAI Whisper API maximum)
+            const maxSize = 25 * 1024 * 1024; // 25MB (OpenAI's limit)
             if (file.size > maxSize) {
-                showTranscriptionStatus(`File too large. Maximum size is 50MB. Current file: ${Math.round(file.size / (1024 * 1024))}MB`, 'error');
+                showTranscriptionStatus(`File too large. Maximum size is 25MB. Current file: ${Math.round(file.size / (1024 * 1024))}MB. Please compress the file manually before uploading.`, 'error');
                 return;
             }
 
@@ -62,6 +62,36 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (error) {
                 showTranscriptionStatus(`Error: ${error.message}`, 'error');
             }
+        });
+    }
+
+    // Manual Text Analysis
+    const analyzeTextBtn = document.getElementById('analyzeTextBtn');
+    if (analyzeTextBtn) {
+        analyzeTextBtn.addEventListener('click', function() {
+            const textInput = document.getElementById('manualTextInput');
+            const text = textInput.value.trim();
+
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+
+            // Create a dummy transcription object structure
+            const transcriptionData = {
+                text: text,
+                transcription: text // fallback
+            };
+
+            // Show the analysis section
+            const analysisSection = document.getElementById('analysisSection');
+            analysisSection.style.display = 'block';
+            
+            // Trigger analysis directly
+            analyzeTranscription(transcriptionData);
+            
+            // Setup interface
+            setupCommentInterface();
         });
     }
 
@@ -123,19 +153,94 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (response.ok && result.success) {
                 showAnalysisStatus('Psychological pattern analysis completed!', 'success');
+                
+                // Validate result.data structure
+                if (!result.data) {
+                    throw new Error('No analysis data in response');
+                }
+                
                 currentAnalysisData = result.data;
                 viewMode = 'comments';
 
                 // Show comment analysis
-                document.getElementById('commentAnalysis').style.display = 'block';
+                const commentAnalysisDiv = document.getElementById('commentAnalysis');
+                if (commentAnalysisDiv) {
+                    commentAnalysisDiv.style.display = 'block';
+                }
 
                 displayAnalysisResult(currentAnalysisData);
             } else {
-                showAnalysisStatus(`Analysis failed: ${result.error}`, 'error');
+                const errorMsg = result.error || 'Unknown error occurred';
+                showAnalysisStatus(`Analysis failed: ${errorMsg}`, 'error');
+                console.error('Analysis API error:', result);
             }
         } catch (error) {
+            console.error('Analysis error:', error);
             showAnalysisStatus(`Error: ${error.message}`, 'error');
+            
+            // Clear any partial results
+            const commentsListDiv = document.getElementById('commentsList');
+            if (commentsListDiv) {
+                commentsListDiv.innerHTML = `<div class="status error">Failed to analyze transcription: ${error.message}</div>`;
+            }
         }
+    }
+
+    // Load sample analysis for testing (no API call)
+    async function loadSampleAnalysis() {
+        const analysisStatus = document.getElementById('analysisStatus');
+        const analysisResult = document.getElementById('analysisResult');
+
+        try {
+            showAnalysisStatus('Loading sample analysis...', 'info');
+            clearAnalysisResult();
+
+            const response = await fetch('/api/sample-analysis');
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showAnalysisStatus('Sample analysis loaded! (Test Mode - No API tokens used)', 'success');
+                
+                if (!result.data) {
+                    throw new Error('No analysis data in response');
+                }
+                
+                currentAnalysisData = result.data;
+                viewMode = 'comments';
+
+                // Show comment analysis
+                const commentAnalysisDiv = document.getElementById('commentAnalysis');
+                if (commentAnalysisDiv) {
+                    commentAnalysisDiv.style.display = 'block';
+                }
+
+                displayAnalysisResult(currentAnalysisData);
+            } else {
+                const errorMsg = result.error || 'Unknown error occurred';
+                showAnalysisStatus(`Failed to load sample: ${errorMsg}`, 'error');
+                console.error('Sample load error:', result);
+            }
+        } catch (error) {
+            console.error('Sample load error:', error);
+            showAnalysisStatus(`Error: ${error.message}`, 'error');
+            
+            const commentsListDiv = document.getElementById('commentsList');
+            if (commentsListDiv) {
+                commentsListDiv.innerHTML = `<div class="status error">Failed to load sample analysis: ${error.message}</div>`;
+            }
+        }
+    }
+
+    // Add event listener for sample button
+    const loadSampleBtn = document.getElementById('loadSampleBtn');
+    if (loadSampleBtn) {
+        loadSampleBtn.addEventListener('click', function() {
+            // Show analysis section if hidden (although the button is inside it, keeping logic robust)
+            const analysisSection = document.getElementById('analysisSection');
+            analysisSection.style.display = 'block';
+            setupCommentInterface();
+            loadSampleAnalysis();
+        });
     }
 
     function showAnalysisStatus(message, type) {
@@ -151,15 +256,68 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displayAnalysisResult(analysisData) {
-        if (!analysisData || !analysisData.segments || analysisData.segments.length === 0) {
-            document.getElementById('commentsList').innerHTML = '<p>No psychological patterns found in the transcription.</p>';
+        const commentsListDiv = document.getElementById('commentsList');
+        const resultDiv = document.getElementById('analysisResult');
+        
+        // Clear previous results
+        commentsListDiv.innerHTML = '';
+        if (resultDiv) resultDiv.innerHTML = '';
+
+        // Validate data structure
+        if (!analysisData) {
+            commentsListDiv.innerHTML = '<div class="status error">No analysis data received. Please try again.</div>';
             return;
         }
 
-        if (viewMode === 'summary') {
-            displaySummaryView(analysisData);
-        } else {
-            displayCommentsView(analysisData);
+        // Check for error in response
+        if (analysisData.error) {
+            commentsListDiv.innerHTML = `<div class="status error">Analysis error: ${analysisData.error}</div>`;
+            if (analysisData.raw_response) {
+                console.error('Raw Claude response:', analysisData.raw_response);
+            }
+            return;
+        }
+
+        // Ensure segments array exists and is valid
+        if (!analysisData.segments) {
+            analysisData.segments = [];
+        }
+        
+        if (!Array.isArray(analysisData.segments)) {
+            console.error('Invalid segments data:', analysisData.segments);
+            commentsListDiv.innerHTML = '<div class="status error">Invalid analysis data structure. Please try again.</div>';
+            return;
+        }
+
+        // Ensure analysis_summary exists
+        if (!analysisData.analysis_summary) {
+            analysisData.analysis_summary = {
+                total_segments: analysisData.segments.length,
+                helpful_thought_ratio: "0%",
+                average_intensity: "medium",
+                focus_direction_ratio: "0%",
+                attribution_count: 0,
+                average_attribution_quality: 0,
+                pattern_distribution: {},
+                key_insights: [],
+                dominant_patterns: []
+            };
+        }
+
+        if (analysisData.segments.length === 0) {
+            commentsListDiv.innerHTML = '<div class="status info">No psychological patterns found in the transcription. The transcription may be too short or not contain relevant patterns.</div>';
+            return;
+        }
+
+        try {
+            if (viewMode === 'summary') {
+                displaySummaryView(analysisData);
+            } else {
+                displayCommentsView(analysisData);
+            }
+        } catch (displayError) {
+            console.error('Error displaying analysis:', displayError);
+            commentsListDiv.innerHTML = `<div class="status error">Error displaying analysis results: ${displayError.message}</div>`;
         }
     }
 
@@ -167,27 +325,69 @@ document.addEventListener('DOMContentLoaded', function () {
         const commentsListDiv = document.getElementById('commentsList');
         const headerDiv = document.getElementById('commentHeader');
 
-        headerDiv.textContent = `💭 Comment Analysis (${analysisData.segments.length})`;
+        if (headerDiv) {
+            headerDiv.textContent = `💭 Comment Analysis (${analysisData.segments.length})`;
+        }
 
-        // Convert segments to comments and add helpfulness scores
-        const comments = analysisData.segments.map((segment, index) => {
-            const patterns = segment.psychological_patterns || [];
-            const avgScore = patterns.length > 0
-                ? Math.round(patterns.reduce((sum, p) => sum + p.helpfulness_score, 0) / patterns.length)
-                : 5;
+        // Convert segments to comments and add helpfulness scores with validation
+        const comments = analysisData.segments
+            .filter(segment => segment && segment.quote) // Filter out invalid segments
+            .map((segment, index) => {
+                try {
+                    const patterns = Array.isArray(segment.psychological_patterns) 
+                        ? segment.psychological_patterns 
+                        : [];
+                    
+                    // Calculate average score from patterns, fallback to segment score, then default
+                    let avgScore = 5;
+                    if (patterns.length > 0) {
+                        const validScores = patterns
+                            .filter(p => p && typeof p.helpfulness_score === 'number')
+                            .map(p => p.helpfulness_score);
+                        if (validScores.length > 0) {
+                            avgScore = Math.round(validScores.reduce((sum, s) => sum + s, 0) / validScores.length);
+                        }
+                    } else if (typeof segment.helpfulness_score === 'number') {
+                        avgScore = segment.helpfulness_score;
+                    }
 
-            return {
-                ...segment,
-                comment_id: index + 1,
-                helpfulness_score: avgScore,
-                patterns: patterns
-            };
-        });
+                    // Ensure attribution_analysis structure exists
+                    const attribution = segment.attribution_analysis || {};
+                    if (!attribution.dimensions) {
+                        attribution.dimensions = {
+                            locus: 'mixed',
+                            stability: 'mixed',
+                            controllability: 'mixed'
+                        };
+                    }
 
-        const commentsHtml = comments.map(comment => createCommentCard(comment)).join('');
-        commentsListDiv.innerHTML = commentsHtml;
+                    return {
+                        ...segment,
+                        comment_id: index + 1,
+                        helpfulness_score: Math.max(1, Math.min(10, avgScore)), // Clamp between 1-10
+                        patterns: patterns,
+                        attribution_analysis: attribution
+                    };
+                } catch (error) {
+                    console.error('Error processing segment:', error, segment);
+                    return null;
+                }
+            })
+            .filter(comment => comment !== null); // Remove any null comments
 
-        attachCommentListeners(comments);
+        if (comments.length === 0) {
+            commentsListDiv.innerHTML = '<div class="status info">No valid comments found in the analysis.</div>';
+            return;
+        }
+
+        try {
+            const commentsHtml = comments.map(comment => createCommentCard(comment)).join('');
+            commentsListDiv.innerHTML = commentsHtml;
+            attachCommentListeners(comments);
+        } catch (error) {
+            console.error('Error creating comment cards:', error);
+            commentsListDiv.innerHTML = '<div class="status error">Error rendering comments. Please check the console for details.</div>';
+        }
     }
 
     function createCommentCard(comment) {
@@ -204,6 +404,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const attributionBadge = hasAttribution ? `
             <div class="helpfulness-badge ${getAttributionColor(attribution.attribution_quality_score)}" style="margin-left: 8px;">
                 🎯 ${attribution.attribution_quality_score}/10 Attribution
+            </div>
+        ` : '';
+
+        // Emotion analysis
+        const emotionAnalysis = comment.emotion_analysis || {};
+        const primaryEmotion = emotionAnalysis.primary_emotion;
+        const emotionBadge = primaryEmotion ? `
+            <div class="helpfulness-badge" style="margin-left: 8px; background: ${primaryEmotion.color}20; color: ${primaryEmotion.color}; border: 1px solid ${primaryEmotion.color}40;">
+                ${primaryEmotion.icon} ${primaryEmotion.name}
             </div>
         ` : '';
 
@@ -253,16 +462,55 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         ` : '';
 
+        // Emotion analysis section
+        const emotionAnalysisHtml = primaryEmotion ? `
+            <div style="margin-bottom: 16px; background: ${primaryEmotion.color}10; border: 1px solid ${primaryEmotion.color}40; border-radius: 6px; padding: 12px;">
+                <h4 style="margin: 0 0 8px 0; color: ${primaryEmotion.color}; display: flex; align-items: center;">
+                    🧠 Emotion Analysis
+                    <span style="margin-left: 8px; font-size: 1.2rem;">${primaryEmotion.icon}</span>
+                </h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 8px;">
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">EMOTION</div>
+                        <div style="font-weight: bold; color: ${primaryEmotion.color};">${primaryEmotion.name}</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">ENERGY</div>
+                        <div style="font-weight: bold;">${primaryEmotion.arousal}/10</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">TIMELINE</div>
+                        <div style="font-weight: bold;">${primaryEmotion.timeline}</div>
+                    </div>
+                    <div style="text-align: center; background: white; padding: 8px; border-radius: 4px;">
+                        <div style="font-size: 11px; color: #6b7280;">RISK</div>
+                        <div style="font-weight: bold; color: ${primaryEmotion.danger === 'Critical' || primaryEmotion.danger === 'High' ? '#EF4444' : primaryEmotion.danger === 'Moderate-High' || primaryEmotion.danger === 'Moderate' ? '#F59E0B' : '#10B981'};">${primaryEmotion.danger}</div>
+                    </div>
+                </div>
+                ${emotionAnalysis.is_in_peak_zone ? `
+                    <div style="background: #D1FAE5; border: 1px solid #10B981; border-radius: 4px; padding: 8px; margin-bottom: 8px;">
+                        <span style="color: #047857; font-weight: 600;">✅ In Peak Performance Zone!</span>
+                    </div>
+                ` : `
+                    <div style="background: white; border-radius: 4px; padding: 8px;">
+                        <strong style="color: ${primaryEmotion.color};">💡 Recommended Action:</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 13px;">${emotionAnalysis.recommended_action}</p>
+                    </div>
+                `}
+            </div>
+        ` : '';
+
         return `
             <div class="comment-card" data-comment-id="${comment.comment_id}">
                 <div class="collapsed-view">
                     <div class="comment-header">
                         <span style="font-weight: 600;">Comment ${comment.comment_id}</span>
-                        <div style="display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                             <div class="helpfulness-badge ${helpfulnessColor}">
                                 ${helpfulnessText}
                             </div>
                             ${attributionBadge}
+                            ${emotionBadge}
                         </div>
                     </div>
                     ${comment.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">⏱️ ${comment.timestamp}</div>` : ''}
@@ -278,8 +526,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         </p>
                     </div>
                     
+                    ${emotionAnalysisHtml}
+
                     ${attributionAnalysisHtml}
-                    
+
                     ${comment.patterns.length > 0 ? `
                         <div style="margin-bottom: 16px;">
                             <h4 style="margin: 0 0 8px 0; color: #374151;">Psychological Patterns:</h4>
@@ -315,61 +565,136 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function displaySummaryView(analysisData) {
-        const summary = analysisData.analysis_summary;
+        const summary = analysisData.analysis_summary || {};
+        const emotionalSummary = summary.emotional_summary || {};
         const resultDiv = document.getElementById('analysisResult');
+        const commentsListDiv = document.getElementById('commentsList');
 
-        resultDiv.innerHTML = `
-            <h3>📊 Psychological Profile Summary</h3>
-            
-            <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h4>📈 Pattern Distribution</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div>
-                        <strong>Constructive Patterns:</strong><br>
-                        • Positive Reinforcement: ${summary.pattern_distribution.positive_reinforcement || 0}<br>
-                        • Emotional Regulation: ${summary.pattern_distribution.emotional_regulation || 0}<br>
-                        • Tactical Focus: ${summary.pattern_distribution.tactical_focus || 0}<br>
-                        • Forward Focus: ${summary.pattern_distribution.forward_focus || 0}<br>
-                        • Energy Management: ${summary.pattern_distribution.energy_management || 0}
+        // Ensure pattern_distribution exists
+        const patternDist = summary.pattern_distribution || {};
+        
+        // Ensure arrays exist
+        const keyInsights = Array.isArray(summary.key_insights) ? summary.key_insights : [];
+        const dominantPatterns = Array.isArray(summary.dominant_patterns) ? summary.dominant_patterns : [];
+
+        if (!resultDiv) {
+            console.error('analysisResult element not found');
+            return;
+        }
+
+        // Build emotional summary section if available
+        const emotionalSummaryHtml = emotionalSummary.dominantEmotion ? `
+            <div style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #818CF8;">
+                <h4 style="color: #4F46E5; margin-bottom: 16px;">🧠 Emotional Profile</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">DOMINANT EMOTION</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; text-transform: capitalize; color: #4F46E5;">${emotionalSummary.dominantEmotion}</div>
                     </div>
-                    <div>
-                        <strong>Challenging Patterns:</strong><br>
-                        • Self Criticism: ${summary.pattern_distribution.self_criticism || 0}<br>
-                        • Backward Focus: ${summary.pattern_distribution.backward_focus || 0}<br>
-                        • Pattern Recognition: ${summary.pattern_distribution.pattern_recognition || 0}
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">PEAK ZONE %</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${emotionalSummary.peakZonePercentage >= 50 ? '#10B981' : emotionalSummary.peakZonePercentage >= 25 ? '#F59E0B' : '#EF4444'};">${emotionalSummary.peakZonePercentage}%</div>
+                    </div>
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">AVG ENERGY</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #374151;">${emotionalSummary.averageArousal || 'N/A'}/10</div>
+                    </div>
+                    <div style="background: white; padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 4px;">DANGER MOMENTS</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: ${emotionalSummary.dangerMoments > 3 ? '#EF4444' : emotionalSummary.dangerMoments > 1 ? '#F59E0B' : '#10B981'};">${emotionalSummary.dangerMoments}</div>
                     </div>
                 </div>
-            </div>
-
-            <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h4>🎯 Key Metrics</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center;">
-                    <div>
-                        <strong>${summary.helpful_thought_ratio}</strong><br>
-                        <small>Helpful Thought Ratio</small>
+                ${emotionalSummary.emotionDistribution ? `
+                    <div style="margin-top: 16px; background: white; padding: 12px; border-radius: 8px;">
+                        <div style="font-size: 12px; color: #6B7280; margin-bottom: 8px;">EMOTION DISTRIBUTION</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${Object.entries(emotionalSummary.emotionDistribution).map(([emotion, count]) => `
+                                <span style="background: #4F46E520; color: #4F46E5; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600;">
+                                    ${emotion}: ${count}
+                                </span>
+                            `).join('')}
+                        </div>
                     </div>
-                    <div>
-                        <strong>${summary.average_intensity}</strong><br>
-                        <small>Language Intensity</small>
-                    </div>
-                    <div>
-                        <strong>${summary.focus_direction_ratio}</strong><br>
-                        <small>Forward Focus Ratio</small>
-                    </div>
+                ` : ''}
+                <div style="margin-top: 16px; text-align: center;">
+                    <a href="emotions.html" style="display: inline-flex; align-items: center; gap: 8px; background: #4F46E5; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                        📚 Learn About Your Emotions
+                    </a>
                 </div>
             </div>
+        ` : '';
 
-            <div style="background: #fff3cd; padding: 20px; border-radius: 8px;">
-                <h4>💡 Key Insights</h4>
-                <ul>
-                    ${summary.key_insights ? summary.key_insights.map(insight => `<li>${insight}</li>`).join('') : '<li>No specific insights available</li>'}
-                </ul>
-                <p><strong>Dominant Patterns:</strong> ${summary.dominant_patterns ? summary.dominant_patterns.join(', ') : 'None identified'}</p>
-            </div>
-        `;
+        try {
+            resultDiv.innerHTML = `
+                <h3>📊 Psychological Profile Summary</h3>
 
-        // Hide comments list when showing summary
-        document.getElementById('commentsList').innerHTML = '';
+                ${emotionalSummaryHtml}
+                
+                <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4>📈 Pattern Distribution</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <strong>Constructive Patterns:</strong><br>
+                            • Positive Reinforcement: ${patternDist.positive_reinforcement || 0}<br>
+                            • Emotional Regulation: ${patternDist.emotional_regulation || 0}<br>
+                            • Tactical Focus: ${patternDist.tactical_focus || 0}<br>
+                            • Forward Focus: ${patternDist.forward_focus || 0}<br>
+                            • Energy Management: ${patternDist.energy_management || 0}
+                        </div>
+                        <div>
+                            <strong>Challenging Patterns:</strong><br>
+                            • Self Criticism: ${patternDist.self_criticism || 0}<br>
+                            • Backward Focus: ${patternDist.backward_focus || 0}<br>
+                            • Pattern Recognition: ${patternDist.pattern_recognition || 0}
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4>🎯 Key Metrics</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center;">
+                        <div>
+                            <strong>${summary.helpful_thought_ratio || '0%'}</strong><br>
+                            <small>Helpful Thought Ratio</small>
+                        </div>
+                        <div>
+                            <strong>${summary.average_intensity || 'medium'}</strong><br>
+                            <small>Language Intensity</small>
+                        </div>
+                        <div>
+                            <strong>${summary.focus_direction_ratio || '0%'}</strong><br>
+                            <small>Forward Focus Ratio</small>
+                        </div>
+                    </div>
+                    ${summary.attribution_count !== undefined ? `
+                    <div style="margin-top: 15px; text-align: center;">
+                        <strong>Attributions Found:</strong> ${summary.attribution_count}
+                        ${summary.average_attribution_quality ? ` | Average Quality: ${summary.average_attribution_quality}/10` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div style="background: #fff3cd; padding: 20px; border-radius: 8px;">
+                    <h4>💡 Key Insights</h4>
+                    ${keyInsights.length > 0 ? `
+                        <ul>
+                            ${keyInsights.map(insight => `<li>${insight}</li>`).join('')}
+                        </ul>
+                    ` : '<p>No specific insights available</p>'}
+                    <p><strong>Dominant Patterns:</strong> ${dominantPatterns.length > 0 ? dominantPatterns.join(', ') : 'None identified'}</p>
+                </div>
+            `;
+
+            // Hide comments list when showing summary
+            if (commentsListDiv) {
+                commentsListDiv.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Error displaying summary:', error);
+            if (resultDiv) {
+                resultDiv.innerHTML = '<div class="status error">Error displaying summary. Please check the console for details.</div>';
+            }
+        }
     }
 
     function attachCommentListeners(comments) {
