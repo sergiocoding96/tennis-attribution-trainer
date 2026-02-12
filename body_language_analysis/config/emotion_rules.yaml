@@ -1,0 +1,21 @@
+# Emotion mapping rules (valence + intensity + gestures -> label)
+# Used by emotion_mapper; can be extended without code change
+gesture_emotions:
+  fist_pump: joy
+  head_down: frustration
+  racket_drop: defeat
+
+valence_intensity:
+  positive:
+    high: excitement
+    medium: relief
+    low: calm
+  negative:
+    high: anger
+    medium: frustration
+    low: disappointment
+  neutral: neutral
+
+intensity_thresholds:
+  high: 7
+  medium: 4

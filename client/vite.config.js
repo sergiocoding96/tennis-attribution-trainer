@@ -7,9 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
+        // Long timeout for body-language video analysis (up to 10 min)
+        timeout: 660000,
+        proxyTimeout: 660000,
       }
     }
   }

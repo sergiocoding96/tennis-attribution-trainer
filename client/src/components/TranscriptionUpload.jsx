@@ -1,28 +1,31 @@
 import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
 import axios from 'axios'
-import { Upload, FileText, Play, Mic, Database, Loader2 } from 'lucide-react'
+import { Upload, FileText, Play, Mic, Database, Loader2, Film } from 'lucide-react'
 
-export default function TranscriptionUpload({ setAnalysisData, setLoading, setError }) {
+export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageData, setLoading, setLoadingMessage, setError }) {
   const { isDark } = useTheme()
   const [activeTab, setActiveTab] = useState('text')
   const [textInput, setTextInput] = useState('')
   const [file, setFile] = useState(null)
+  const [videoFile, setVideoFile] = useState(null)
   const [uploadStatus, setUploadStatus] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
 
   const handleTextSubmit = async () => {
     if (!textInput.trim()) return
-    
+
+    setLoadingMessage('Analyzing performance patterns...')
     setLoading(true)
     setError(null)
+    setBodyLanguageData?.(null)
     setIsProcessing(true)
-    
+
     try {
       const response = await axios.post('/api/analyze', {
         transcription: textInput
       })
-      
+
       if (response.data.success) {
         setAnalysisData(response.data.data)
       } else {
@@ -50,8 +53,10 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
       return
     }
 
+    setLoadingMessage('Analyzing performance patterns...')
     setLoading(true)
     setError(null)
+    setBodyLanguageData?.(null)
     setIsProcessing(true)
     setUploadStatus('Uploading & Transcribing...')
 
@@ -61,12 +66,12 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
 
     try {
       const transResponse = await axios.post('/api/transcribe', formData)
-      
+
       if (transResponse.data.success) {
         const transcriptionText = transResponse.data.data.text
         setTextInput(transcriptionText)
         setUploadStatus('Analyzing patterns...')
-        
+
         const analyzeResponse = await axios.post('/api/analyze', {
           transcription: transcriptionText
         })
@@ -90,11 +95,59 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
     }
   }
 
-  const loadSample = async () => {
+  const handleVideoSubmit = async (e) => {
+    e.preventDefault()
+    if (!videoFile) return
+
+    const maxSize = 500 * 1024 * 1024 // 500MB
+    if (videoFile.size > maxSize) {
+      const fileSizeMB = (videoFile.size / (1024 * 1024)).toFixed(2)
+      setError(`Video too large: ${fileSizeMB}MB. Maximum size is 500MB.`)
+      return
+    }
+
+    setLoadingMessage('Analyzing body language...')
     setLoading(true)
     setError(null)
+    setAnalysisData(null)
+    setBodyLanguageData?.(null)
     setIsProcessing(true)
-    
+    setUploadStatus('Uploading & analyzing body language...')
+
+    const formData = new FormData()
+    formData.append('video', videoFile)
+
+    try {
+      // Long timeout for video upload + analysis (up to 11 min to match server)
+      const response = await axios.post('/api/body-language/analyze', formData, {
+        timeout: 660000,
+      })
+      if (response.data.success) {
+        setBodyLanguageData?.(response.data.data)
+      } else {
+        setError(response.data.error || 'Body language analysis failed.')
+      }
+    } catch (err) {
+      const isNetworkError = err.code === 'ERR_NETWORK_ERROR' || err.message?.includes('Connection reset') || err.message?.includes('ECONNREFUSED')
+      const errorMsg = isNetworkError
+        ? 'Connection failed. Is the server running on port 3000? Check the terminal and try again.'
+        : (err.response?.data?.error || err.message || 'Body language analysis failed. Please check your connection and try again.')
+      setError(errorMsg)
+      console.error('Body language error:', err)
+    } finally {
+      setLoading(false)
+      setIsProcessing(false)
+      setUploadStatus('')
+    }
+  }
+
+  const loadSample = async () => {
+    setLoadingMessage('Analyzing performance patterns...')
+    setLoading(true)
+    setError(null)
+    setBodyLanguageData?.(null)
+    setIsProcessing(true)
+
     try {
       const response = await axios.get('/api/sample-analysis')
       if (response.data.success) {
@@ -156,6 +209,17 @@ export default function TranscriptionUpload({ setAnalysisData, setLoading, setEr
           <Mic className="w-4 h-4" />
           <span>Audio</span>
         </button>
+        <button
+          onClick={() => setActiveTab('video')}
+          className={`tab flex-1 flex items-center justify-center gap-2 ${
+            activeTab === 'video'
+              ? isDark ? 'tab-active-dark' : 'tab-active-light'
+              : isDark ? 'tab-inactive-dark' : 'tab-inactive-light'
+          }`}
+        >
+          <Film className="w-4 h-4" />
+          <span>Video</span>
+        </button>
       </div>
 
       <div className="p-5">
@@ -205,7 +269,7 @@ Example: 'No jugué bien hoy. La cancha estaba muy lenta y no pude ajustar mi ju
               )}
             </button>
           </div>
-        ) : (
+        ) : activeTab === 'audio' ? (
           <form onSubmit={handleFileSubmit} className="space-y-4">
             <div
               onDragOver={handleDragOver}
@@ -221,7 +285,7 @@ Example: 'No jugué bien hoy. La cancha estaba muy lenta y no pude ajustar mi ju
                 id="audio-upload"
                 accept="audio/*"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={(e) => setFile(e.target.files[0])}
+                onChange={(e) => setFile(e.target.files?.[0])}
               />
               <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
                 isDark ? 'bg-accent-yellow/10' : 'bg-accent-green/10'
@@ -261,6 +325,61 @@ Example: 'No jugué bien hoy. La cancha estaba muy lenta y no pude ajustar mi ju
                 <>
                   <Play className="w-4 h-4" />
                   <span>Transcribe & Analyze</span>
+                </>
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVideoSubmit} className="space-y-4">
+            <div
+              onDragOver={handleDragOver}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const f = e.dataTransfer.files[0]
+                if (f && (f.type.startsWith('video/') || /\.(mp4|mov|avi)$/i.test(f.name))) setVideoFile(f)
+              }}
+              className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${
+                isDark
+                  ? 'border-dark-border hover:border-accent-yellow/50 hover:bg-accent-yellow/5'
+                  : 'border-light-border hover:border-accent-green/50 hover:bg-accent-green/5'
+              }`}
+            >
+              <input
+                type="file"
+                id="video-upload"
+                accept="video/mp4,video/quicktime,video/x-msvideo,.mp4,.mov,.avi"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={(e) => setVideoFile(e.target.files?.[0])}
+              />
+              <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                isDark ? 'bg-accent-yellow/10' : 'bg-accent-green/10'
+              }`}>
+                <Film className={`w-6 h-6 ${isDark ? 'text-accent-yellow' : 'text-accent-green'}`} />
+              </div>
+              <p className={`font-medium ${isDark ? 'text-dark-text' : 'text-light-text'}`}>
+                {videoFile ? videoFile.name : 'Drop tennis video here'}
+              </p>
+              <p className={`text-xs mt-2 ${isDark ? 'text-dark-muted' : 'text-light-muted'}`}>
+                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : 'MP4, MOV, AVI • Max 500MB'}
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={!videoFile || isProcessing}
+              className={`w-full flex items-center justify-center gap-2 ${
+                isDark ? 'btn-primary-dark' : 'btn-primary-light'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{uploadStatus || 'Analyzing body language...'}</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  <span>Analyze Body Language</span>
                 </>
               )}
             </button>

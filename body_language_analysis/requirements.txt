@@ -1,0 +1,10 @@
+# Body language analysis pipeline
+# Python 3.9+
+opencv-python>=4.8.0
+mediapipe>=0.10.0
+numpy>=1.24.0
+scipy>=1.10.0
+PyYAML>=6.0
+
+# Optional: coach-style explanation (Phase 5)
+# google-generativeai>=0.3.0

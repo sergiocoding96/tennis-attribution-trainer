@@ -1,0 +1,26 @@
+# Body language analysis thresholds
+video:
+  target_fps: 10
+  max_frames: 1500
+  window_seconds: 4.0
+  stride_seconds: 2.0
+
+pose:
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+posture:
+  baseline_window_frames: 30
+
+gestures:
+  min_confidence: 0.5
+
+emotion:
+  intensity_min: 1.0
+  intensity_max: 10.0
+  trend_threshold: 0.02
+
+confidence:
+  visibility_weight: 0.4
+  occlusion_jitter_weight: 0.3
+  pose_weight: 0.3

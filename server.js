@@ -12,6 +12,7 @@ const transcriptionService = require('./server/services/transcription');
 const attributionService = require('./server/services/attribution');
 const emotionFramework = require('./server/services/emotionFramework');
 const supabaseService = require('./server/services/supabase');
+const bodyLanguageService = require('./server/services/bodyLanguage');
 
 // Import middleware
 const { requireAuth, requireAdmin, optionalAuth } = require('./server/middleware/auth');
@@ -109,6 +110,35 @@ const audioUpload = multer({
     }
 });
 
+// Configure multer for body-language video upload
+const videoStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'server/data/uploads/');
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'video-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: {
+        fileSize: 500 * 1024 * 1024, // 500MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        const allowedVideoTypes = /mp4|mov|avi/;
+        const extname = allowedVideoTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedVideoTypes.test(file.mimetype) || file.mimetype.startsWith('video/');
+
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Invalid video file type. Supported formats: MP4, MOV, AVI'));
+        }
+    }
+});
+
 // Routes
 
 // Health check endpoint
@@ -192,6 +222,49 @@ app.post('/api/transcribe', audioUpload.single('audio'), async (req, res) => {
                 await transcriptionService.cleanupFile(uploadedFilePath);
             } catch (cleanupError) {
                 console.error('Error cleaning up file:', cleanupError);
+            }
+        }
+    }
+});
+
+// Body language analysis endpoint (video upload)
+app.post('/api/body-language/analyze', videoUpload.single('video'), async (req, res) => {
+    let uploadedFilePath = null;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No video file uploaded. Please provide a video file.'
+            });
+        }
+
+        uploadedFilePath = req.file.path;
+        const { originalname, size } = req.file;
+
+        console.log(`Processing body language video: ${originalname} (${Math.round(size / (1024 * 1024))}MB)`);
+
+        const result = await bodyLanguageService.analyzeVideo(uploadedFilePath);
+
+        res.json({
+            success: true,
+            message: 'Body language analysis completed successfully',
+            data: result.data,
+            metadata: result.metadata
+        });
+    } catch (error) {
+        console.error('Body language analysis endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Body language analysis failed',
+            timestamp: new Date().toISOString()
+        });
+    } finally {
+        if (uploadedFilePath) {
+            try {
+                await bodyLanguageService.cleanupFile(uploadedFilePath);
+            } catch (cleanupError) {
+                console.error('Error cleaning up video file:', cleanupError);
             }
         }
     }
@@ -516,12 +589,14 @@ app.use((error, req, res, next) => {
 
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
-            // Check if this is an audio upload (transcribe endpoint)
             const isAudioUpload = req.path === '/api/transcribe';
-            const maxSize = isAudioUpload ? '500MB (will be automatically sliced into 20MB chunks if > 25MB)' : '25MB';
-            return res.status(400).json({ 
+            const isVideoUpload = req.path === '/api/body-language/analyze';
+            let maxSize = '25MB';
+            if (isAudioUpload) maxSize = '500MB (will be automatically sliced into 20MB chunks if > 25MB)';
+            else if (isVideoUpload) maxSize = '500MB';
+            return res.status(400).json({
                 success: false,
-                error: `File too large. Maximum size is ${maxSize}.` 
+                error: `File too large. Maximum size is ${maxSize}.`
             });
         }
         if (error.code === 'LIMIT_FILE_COUNT') {
@@ -543,6 +618,7 @@ app.listen(PORT, () => {
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🎤 Audio transcription available at: /api/transcribe`);
     console.log(`🧠 Attribution analysis available at: /api/analyze`);
+    console.log(`🎬 Body language analysis available at: /api/body-language/analyze`);
 
     // Check OpenAI API key
     if (!process.env.OPENAI_API_KEY) {

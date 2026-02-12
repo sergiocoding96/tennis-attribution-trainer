@@ -74,3 +74,8 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Test / local assets (large files)
+video_test_files/
+audio_test_files/
+**/__pycache__/

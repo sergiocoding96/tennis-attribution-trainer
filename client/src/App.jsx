@@ -3,6 +3,7 @@ import { useTheme } from './context/ThemeContext'
 import { useAuth } from './context/AuthContext'
 import TranscriptionUpload from './components/TranscriptionUpload'
 import AnalysisDisplay from './components/AnalysisDisplay'
+import BodyLanguageDisplay from './components/BodyLanguageDisplay'
 import SessionHistory from './components/SessionHistory'
 import Auth from './components/Auth'
 import EmotionsFramework from './components/EmotionsFramework'
@@ -12,13 +13,16 @@ function App() {
   const { toggleTheme, isDark } = useTheme()
   const { user, profile, isAuthenticated, isConfigured, signOut, loading: authLoading } = useAuth()
   const [analysisData, setAnalysisData] = useState(null)
+  const [bodyLanguageData, setBodyLanguageData] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('Analyzing performance patterns...')
   const [error, setError] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
   const [showEmotions, setShowEmotions] = useState(false)
 
   const handleSelectSession = (data) => {
     setAnalysisData(data)
+    setBodyLanguageData(null)
     setError(null)
   }
 
@@ -150,7 +154,9 @@ function App() {
           <div className="lg:col-span-4 space-y-6">
             <TranscriptionUpload 
               setAnalysisData={setAnalysisData} 
+              setBodyLanguageData={setBodyLanguageData}
               setLoading={setLoading}
+              setLoadingMessage={setLoadingMessage}
               setError={setError}
             />
             
@@ -176,12 +182,12 @@ function App() {
                 <p className={`font-medium ${
                   isDark ? 'text-dark-text' : 'text-light-text'
                 }`}>
-                  Analyzing performance patterns...
+                  {loadingMessage}
                 </p>
                 <p className={`text-sm mt-2 ${
                   isDark ? 'text-dark-muted' : 'text-light-muted'
                 }`}>
-                  Consulting Claude AI for psychological insights
+                  {loadingMessage.includes('body language') ? 'Measuring pose and motion...' : 'Consulting Claude AI for psychological insights'}
                 </p>
               </div>
             ) : error ? (
@@ -195,6 +201,8 @@ function App() {
                   isDark ? 'text-dark-muted' : 'text-light-muted'
                 }`}>{error}</p>
               </div>
+            ) : bodyLanguageData ? (
+              <BodyLanguageDisplay data={bodyLanguageData} />
             ) : analysisData ? (
               <AnalysisDisplay 
                 data={analysisData} 
