@@ -13,6 +13,7 @@ const attributionService = require('./server/services/attribution');
 const emotionFramework = require('./server/services/emotionFramework');
 const supabaseService = require('./server/services/supabase');
 const bodyLanguageService = require('./server/services/bodyLanguage');
+const bodyLanguageCorrections = require('./server/services/bodyLanguageCorrections');
 
 // Import middleware
 const { requireAuth, requireAdmin, optionalAuth } = require('./server/middleware/auth');
@@ -267,6 +268,75 @@ app.post('/api/body-language/analyze', videoUpload.single('video'), async (req, 
                 console.error('Error cleaning up video file:', cleanupError);
             }
         }
+    }
+});
+
+// Human-in-the-loop: save a body language segment correction (valence/emotion)
+app.post('/api/body-language/corrections', optionalAuth, async (req, res) => {
+    try {
+        const {
+            window_index,
+            timestamp_start,
+            timestamp_end,
+            original_valence,
+            original_emotion,
+            corrected_valence,
+            corrected_emotion,
+            features,
+        } = req.body;
+
+        if (
+            typeof window_index !== 'number' ||
+            typeof timestamp_start !== 'number' ||
+            typeof timestamp_end !== 'number' ||
+            !['positive', 'neutral', 'negative'].includes(String(original_valence)) ||
+            !['positive', 'neutral', 'negative'].includes(String(corrected_valence))
+        ) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing or invalid fields: window_index, timestamp_start, timestamp_end, original_valence, corrected_valence (positive|neutral|negative), and optional original_emotion, corrected_emotion, features.',
+            });
+        }
+
+        const payload = {
+            window_index,
+            timestamp_start,
+            timestamp_end,
+            original_valence,
+            original_emotion: original_emotion ?? null,
+            corrected_valence,
+            corrected_emotion: corrected_emotion ?? null,
+        };
+        if (features && typeof features === 'object' && !Array.isArray(features)) {
+            payload.features = features;
+        }
+        if (req.user && req.user.id) {
+            payload.user_id = req.user.id;
+        }
+
+        const record = await bodyLanguageCorrections.saveCorrection(payload);
+        res.json({ success: true, data: record });
+    } catch (error) {
+        console.error('Body language correction save error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to save correction',
+        });
+    }
+});
+
+// Export corrections (with features) for training
+app.get('/api/body-language/corrections/export', async (req, res) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit, 10) || 1000, 5000);
+        const list = await bodyLanguageCorrections.getCorrections(limit);
+        res.json({ success: true, data: list });
+    } catch (error) {
+        console.error('Body language corrections export error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to export corrections',
+        });
     }
 });
 

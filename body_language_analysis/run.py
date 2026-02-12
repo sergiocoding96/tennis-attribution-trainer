@@ -25,10 +25,11 @@ from body_language_analysis.video import VideoLoader, FrameSampler
 from body_language_analysis.pose import PoseEstimator, normalize_landmarks
 from body_language_analysis.posture import compute_posture_metrics, BaselineModel
 from body_language_analysis.motion import compute_velocity, gait_stability
-from body_language_analysis.temporal import sliding_windows, trend_over_window
+from body_language_analysis.temporal import sliding_windows, trend_over_window, smooth_valence_over_windows
 from body_language_analysis.gestures import GestureDetector
 from body_language_analysis.gestures.gesture_rules import GESTURE_RULES
 from body_language_analysis.emotion import classify_valence, score_intensity, map_to_emotion_label
+from body_language_analysis.emotion.valence_model import predict_valence
 from body_language_analysis.confidence import window_confidence_score
 from body_language_analysis.explanation import generate_explanation
 from body_language_analysis.output import PipelineOutput, WindowResult, export_json
@@ -139,6 +140,7 @@ def run_pipeline(
     config = load_config()
     video_cfg = config.get("video", {})
     pose_cfg = config.get("pose", {})
+    reaction_cfg = config.get("reaction", {})
     target_fps = video_cfg.get("target_fps", 10)
     max_frames = video_cfg.get("max_frames", 1500)
 
@@ -172,7 +174,8 @@ def run_pipeline(
         min_detection_confidence=pose_cfg.get("min_detection_confidence", 0.5),
         min_tracking_confidence=pose_cfg.get("min_tracking_confidence", 0.5),
     )
-    gesture_detector = GestureDetector()
+    gesture_cfg = config.get("gestures", {})
+    gesture_detector = GestureDetector(config=gesture_cfg)
     baseline = BaselineModel(window_size=30)
 
     # Auto-detect closer player from first frame if no region was specified
@@ -241,31 +244,46 @@ def run_pipeline(
         shoulder_angles = [p.get("shoulder_angle_deg", 0) for p in posture_slice]
         posture_trend = trend_over_window(shoulder_angles) if shoulder_angles else "stable"
 
-        # Gestures
-        gestures_in_window = gesture_detector.detect_window(lm_slice, ts_slice)
+        # Gestures (pass pose confidence so low-quality frames can be skipped)
+        pose_conf_slice = pose_confidence_per_frame[start_idx:end_idx]
+        gestures_in_window = gesture_detector.detect_window(lm_slice, ts_slice, pose_conf_slice)
         gesture_valences = [GESTURE_RULES.get(g["gesture"], {}).get("valence", "neutral") for g in gestures_in_window]
         gesture_names = [g["gesture"] for g in gestures_in_window]
 
         # Intensity
         intensity = score_intensity(posture_slice, vel_slice, len(gestures_in_window))
 
-        # Valence
-        valence = classify_valence(posture_trend, gesture_valences, intensity)
+        # Motion level: high = likely stroke; low = reaction/between points (trust gestures more)
+        motion_avg_val = sum(vel_slice) / len(vel_slice) if vel_slice else 0.0
+        motion_threshold = float(reaction_cfg.get("motion_threshold_for_reaction", 0.02))
+        is_reaction_window = motion_avg_val < motion_threshold
 
-        # Emotion label
-        emotion = map_to_emotion_label(valence, intensity, gesture_names)
-
-        # Confidence
+        # Valence: use trained model if present, else rule-based
         conf = window_confidence_score(lm_slice, ts_slice, pose_confidence_per_frame[start_idx:end_idx])
-
-        # Posture/motion summary for window
         posture_avg = {}
         if posture_slice:
             for k in posture_slice[0]:
                 posture_avg[k] = sum(p.get(k, 0) for p in posture_slice) / len(posture_slice)
+        gait = gait_stability(lm_slice, ts_slice, "nose")
         motion_avg = {
             "velocity_nose_avg": sum(vel_slice) / len(vel_slice) if vel_slice else 0,
+            "gait_stability": round(gait, 4),
         }
+        window_dict_for_valence = {
+            "posture_metrics": posture_avg,
+            "motion_metrics": motion_avg,
+            "detected_gestures": gestures_in_window,
+            "intensity": round(min(10, max(1, intensity)), 1),
+            "confidence_score": round(conf, 4),
+        }
+        valence = predict_valence(window_dict_for_valence)
+        if valence is None:
+            valence = classify_valence(posture_trend, gesture_valences, intensity, is_reaction_window=is_reaction_window)
+
+        # Emotion label
+        emotion = map_to_emotion_label(valence, intensity, gesture_names)
+
+        # (conf, posture_avg, motion_avg, gait already computed above for valence model)
 
         # Optional explanation
         explanation_text = None
@@ -297,6 +315,31 @@ def run_pipeline(
                 explanation_text=explanation_text,
             )
         )
+
+    # Temporal smoothing: majority vote on valence over 3-window, then re-derive emotion
+    if results:
+        valences = [r.valence for r in results]
+        smoothed_valences = smooth_valence_over_windows(valences, kernel_size=3)
+        gesture_names_per_window = [[g["gesture"] for g in r.detected_gestures] for r in results]
+        smoothed_results = []
+        for i, r in enumerate(results):
+            new_valence = smoothed_valences[i]
+            new_emotion = map_to_emotion_label(new_valence, r.intensity, gesture_names_per_window[i])
+            smoothed_results.append(
+                WindowResult(
+                    timestamp_start=r.timestamp_start,
+                    timestamp_end=r.timestamp_end,
+                    posture_metrics=r.posture_metrics,
+                    motion_metrics=r.motion_metrics,
+                    detected_gestures=r.detected_gestures,
+                    valence=new_valence,
+                    intensity=r.intensity,
+                    emotion=new_emotion,
+                    confidence_score=r.confidence_score,
+                    explanation_text=r.explanation_text,
+                )
+            )
+        results = smoothed_results
 
     return PipelineOutput(
         windows=results,

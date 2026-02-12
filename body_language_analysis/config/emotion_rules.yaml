@@ -4,6 +4,8 @@ gesture_emotions:
   fist_pump: joy
   head_down: frustration
   racket_drop: defeat
+  head_shake: frustration
+  shoulder_slump: disappointment
 
 valence_intensity:
   positive:

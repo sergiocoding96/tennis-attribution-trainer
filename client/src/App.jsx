@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useTheme } from './context/ThemeContext'
 import { useAuth } from './context/AuthContext'
 import TranscriptionUpload from './components/TranscriptionUpload'
@@ -14,6 +14,16 @@ function App() {
   const { user, profile, isAuthenticated, isConfigured, signOut, loading: authLoading } = useAuth()
   const [analysisData, setAnalysisData] = useState(null)
   const [bodyLanguageData, setBodyLanguageData] = useState(null)
+  const [bodyLanguageVideoUrl, setBodyLanguageVideoUrlState] = useState(null)
+  const bodyLanguageVideoUrlRef = useRef(null)
+  const setBodyLanguageVideoUrl = useCallback((url) => {
+    if (bodyLanguageVideoUrlRef.current) {
+      URL.revokeObjectURL(bodyLanguageVideoUrlRef.current)
+      bodyLanguageVideoUrlRef.current = null
+    }
+    if (url) bodyLanguageVideoUrlRef.current = url
+    setBodyLanguageVideoUrlState(url)
+  }, [])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('Analyzing performance patterns...')
   const [error, setError] = useState(null)
@@ -23,6 +33,7 @@ function App() {
   const handleSelectSession = (data) => {
     setAnalysisData(data)
     setBodyLanguageData(null)
+    setBodyLanguageVideoUrl(null)
     setError(null)
   }
 
@@ -155,6 +166,7 @@ function App() {
             <TranscriptionUpload 
               setAnalysisData={setAnalysisData} 
               setBodyLanguageData={setBodyLanguageData}
+              setBodyLanguageVideoUrl={setBodyLanguageVideoUrl}
               setLoading={setLoading}
               setLoadingMessage={setLoadingMessage}
               setError={setError}
@@ -202,7 +214,7 @@ function App() {
                 }`}>{error}</p>
               </div>
             ) : bodyLanguageData ? (
-              <BodyLanguageDisplay data={bodyLanguageData} />
+              <BodyLanguageDisplay data={bodyLanguageData} videoUrl={bodyLanguageVideoUrl} />
             ) : analysisData ? (
               <AnalysisDisplay 
                 data={analysisData} 

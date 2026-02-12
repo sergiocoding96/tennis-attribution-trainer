@@ -3,7 +3,7 @@ import { useTheme } from '../context/ThemeContext'
 import axios from 'axios'
 import { Upload, FileText, Play, Mic, Database, Loader2, Film } from 'lucide-react'
 
-export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageData, setLoading, setLoadingMessage, setError }) {
+export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageData, setBodyLanguageVideoUrl, setLoading, setLoadingMessage, setError }) {
   const { isDark } = useTheme()
   const [activeTab, setActiveTab] = useState('text')
   const [textInput, setTextInput] = useState('')
@@ -19,6 +19,7 @@ export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageDa
     setLoading(true)
     setError(null)
     setBodyLanguageData?.(null)
+    setBodyLanguageVideoUrl?.(null)
     setIsProcessing(true)
 
     try {
@@ -57,6 +58,7 @@ export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageDa
     setLoading(true)
     setError(null)
     setBodyLanguageData?.(null)
+    setBodyLanguageVideoUrl?.(null)
     setIsProcessing(true)
     setUploadStatus('Uploading & Transcribing...')
 
@@ -111,6 +113,7 @@ export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageDa
     setError(null)
     setAnalysisData(null)
     setBodyLanguageData?.(null)
+    setBodyLanguageVideoUrl?.(null)
     setIsProcessing(true)
     setUploadStatus('Uploading & analyzing body language...')
 
@@ -124,6 +127,7 @@ export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageDa
       })
       if (response.data.success) {
         setBodyLanguageData?.(response.data.data)
+        setBodyLanguageVideoUrl?.(URL.createObjectURL(videoFile))
       } else {
         setError(response.data.error || 'Body language analysis failed.')
       }
@@ -146,6 +150,7 @@ export default function TranscriptionUpload({ setAnalysisData, setBodyLanguageDa
     setLoading(true)
     setError(null)
     setBodyLanguageData?.(null)
+    setBodyLanguageVideoUrl?.(null)
     setIsProcessing(true)
 
     try {

@@ -1,4 +1,5 @@
 # Body language analysis thresholds
+# Tuning: adjust values here; no code change needed. See README for accuracy tips.
 video:
   target_fps: 10
   max_frames: 1500
@@ -6,14 +7,31 @@ video:
   stride_seconds: 2.0
 
 pose:
-  min_detection_confidence: 0.5
-  min_tracking_confidence: 0.5
+  min_detection_confidence: 0.55   # stricter = fewer bad poses (0.5–0.7)
+  min_tracking_confidence: 0.55
 
 posture:
   baseline_window_frames: 30
 
+# When velocity_nose_avg > this, window is treated as "stroke" (high motion); gestures downweighted.
+reaction:
+  motion_threshold_for_reaction: 0.02   # above = stroke, below = reaction/between points
+
 gestures:
   min_confidence: 0.5
+  min_frames_ratio: 0.3       # gesture in at least 30% of window frames (0.25–0.4)
+  min_consecutive_frames: 6   # or at least 6 consecutive frames (5–10)
+  smooth_landmarks_frames: 3
+  min_pose_confidence_for_gestures: 0.45   # skip frames with pose conf below this when counting
+  fist_pump_require_motion: true   # require upward wrist motion (reduces stroke false positives)
+  use_fist_pump_both_wrists: true # require both wrists above shoulders for fist_pump
+  head_down_nose_offset: 0.08
+  shoulder_slump_offset: 0.12
+  head_shake_variance_min: 0.0008
+  hands_on_hips_dx: 0.08
+  hands_on_hips_dy: 0.12
+  wrist_above_hip_margin: 0.15
+  scale_invariant: true   # use body-relative offsets (shoulder width) for thresholds
 
 emotion:
   intensity_min: 1.0

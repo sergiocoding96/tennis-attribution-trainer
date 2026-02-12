@@ -1,4 +1,4 @@
-"""Trend (rising/falling/stable) over a window of scalar values."""
+"""Trend (rising/falling/stable) over a window of scalar values; temporal smoothing."""
 from typing import List
 
 
@@ -20,3 +20,25 @@ def trend_over_window(values: List[float]) -> str:
     if diff < -0.02:
         return "falling"
     return "stable"
+
+
+def smooth_valence_over_windows(valences: List[str], kernel_size: int = 3) -> List[str]:
+    """
+    Smooth valence list by majority vote over a sliding kernel.
+    Reduces jitter (e.g. positive/negative/positive -> positive).
+    """
+    if not valences or kernel_size < 1:
+        return list(valences)
+    n = len(valences)
+    half = kernel_size // 2
+    out: List[str] = []
+    for i in range(n):
+        start = max(0, i - half)
+        end = min(n, i + half + 1)
+        window_vals = valences[start:end]
+        counts: dict = {}
+        for v in window_vals:
+            counts[v] = counts.get(v, 0) + 1
+        best = max(counts.items(), key=lambda x: x[1])
+        out.append(best[0])
+    return out
